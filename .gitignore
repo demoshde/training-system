@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+mern/client/node_modules/
+mern/server/node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+mern/server/.env
+mern/client/.env
+
+# Build outputs
+dist/
+build/
+mern/client/dist/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Uploads (keep folder structure but ignore contents)
+mern/server/uploads/images/*
+mern/server/uploads/pdfs/*
+!mern/server/uploads/images/.gitkeep
+!mern/server/uploads/pdfs/.gitkeep
+uploads/trainings/*
+!uploads/trainings/.gitkeep
+
+# MongoDB backups (optional - uncomment to exclude)
+# mern/backups/
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
