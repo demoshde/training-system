@@ -373,7 +373,7 @@ const Polls = () => {
                   )}
                 </div>
               ),
-              rowExpandable: (record) => record.companyStats?.companies?.length > 0 || expandedPollId === record._id,
+              rowExpandable: () => true,
             }}
             columns={[
               {
@@ -464,41 +464,50 @@ const Polls = () => {
                 title: 'Үйлдэл',
                 key: 'actions',
                 width: 150,
-                render: (_, record) => (
-                  <Space>
-                    <Tooltip title="Статистик">
-                      <Button
-                        type={expandedPollId === record._id ? 'primary' : 'default'}
-                        icon={<BarChartOutlined />}
-                        onClick={() => toggleStats(record)}
-                        size="small"
-                      />
-                    </Tooltip>
-                    <Tooltip title="Засах">
-                      <Button
-                        icon={<EditOutlined />}
-                        onClick={() => openModal(record)}
-                        size="small"
-                      />
-                    </Tooltip>
-                    <Popconfirm
-                      title="Санал асуулга устгах"
-                      description={`"${record.title}" санал асуулгыг устгах уу?`}
-                      onConfirm={() => handleDelete(record)}
-                      okText="Устгах"
-                      cancelText="Цуцлах"
-                      okButtonProps={{ danger: true }}
-                    >
-                      <Tooltip title="Устгах">
+                render: (_, record) => {
+                  // Company admin cannot edit/delete global polls (company: null / targetAudience: 'all')
+                  const canEditDelete = admin?.role === 'super_admin' || record.company;
+                  
+                  return (
+                    <Space>
+                      <Tooltip title="Статистик">
                         <Button
-                          danger
-                          icon={<DeleteOutlined />}
+                          type={expandedPollId === record._id ? 'primary' : 'default'}
+                          icon={<BarChartOutlined />}
+                          onClick={() => toggleStats(record)}
                           size="small"
                         />
                       </Tooltip>
-                    </Popconfirm>
-                  </Space>
-                ),
+                      {canEditDelete && (
+                        <>
+                          <Tooltip title="Засах">
+                            <Button
+                              icon={<EditOutlined />}
+                              onClick={() => openModal(record)}
+                              size="small"
+                            />
+                          </Tooltip>
+                          <Popconfirm
+                            title="Санал асуулга устгах"
+                            description={`"${record.title}" санал асуулгыг устгах уу?`}
+                            onConfirm={() => handleDelete(record)}
+                            okText="Устгах"
+                            cancelText="Цуцлах"
+                            okButtonProps={{ danger: true }}
+                          >
+                            <Tooltip title="Устгах">
+                              <Button
+                                danger
+                                icon={<DeleteOutlined />}
+                                size="small"
+                              />
+                            </Tooltip>
+                          </Popconfirm>
+                        </>
+                      )}
+                    </Space>
+                  );
+                },
               },
             ]}
           />
@@ -533,27 +542,38 @@ const Polls = () => {
               />
             </Form.Item>
 
-            <Form.Item label="Хамрах хүрээ">
-              <Select
-                value={formData.targetAudience}
-                onChange={(value) => setFormData({ ...formData, targetAudience: value })}
-              >
-                <Select.Option value="all">Бүх ажилтан</Select.Option>
-                <Select.Option value="company">Тодорхой компани</Select.Option>
-              </Select>
-            </Form.Item>
+            {admin?.role === 'super_admin' ? (
+              <>
+                <Form.Item label="Хамрах хүрээ">
+                  <Select
+                    value={formData.targetAudience}
+                    onChange={(value) => setFormData({ ...formData, targetAudience: value })}
+                  >
+                    <Select.Option value="all">Бүх ажилтан</Select.Option>
+                    <Select.Option value="company">Тодорхой компани</Select.Option>
+                  </Select>
+                </Form.Item>
 
-            {formData.targetAudience === 'company' && admin?.role === 'super_admin' && (
-              <Form.Item label="Компани">
-                <Select
-                  value={formData.company}
-                  onChange={(value) => setFormData({ ...formData, company: value })}
-                  placeholder="Сонгоно уу"
-                >
-                  {companies.map((c) => (
-                    <Select.Option key={c._id} value={c._id}>{c.name}</Select.Option>
-                  ))}
-                </Select>
+                {formData.targetAudience === 'company' && (
+                  <Form.Item label="Компани">
+                    <Select
+                      value={formData.company}
+                      onChange={(value) => setFormData({ ...formData, company: value })}
+                      placeholder="Сонгоно уу"
+                    >
+                      {companies.map((c) => (
+                        <Select.Option key={c._id} value={c._id}>{c.name}</Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                )}
+              </>
+            ) : (
+              <Form.Item label="Хамрах хүрээ">
+                <Tag color="blue">{admin?.company?.name || 'Таны компани'}</Tag>
+                <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+                  (Зөвхөн өөрийн компани дотор явуулах боломжтой)
+                </Text>
               </Form.Item>
             )}
 

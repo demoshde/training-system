@@ -160,6 +160,95 @@ router.delete('/:id', adminAuth, async (req, res) => {
   }
 });
 
+// Bulk check - get training progress for multiple SAP IDs
+router.post('/bulk-check', adminAuth, async (req, res) => {
+  try {
+    const { sapIds, trainingId } = req.body;
+    
+    if (!sapIds || sapIds.length === 0) {
+      return res.status(400).json({ message: 'SAP дугаар оруулна уу' });
+    }
+
+    const Worker = require('../models/Worker');
+    
+    // Find workers by SAP IDs
+    const workers = await Worker.find({ 
+      sapId: { $in: sapIds.map(id => id.trim().toUpperCase()) }
+    }).populate('company');
+
+    // Build filter for enrollments
+    const workerIds = workers.map(w => w._id);
+    const enrollmentFilter = { worker: { $in: workerIds } };
+    
+    if (trainingId) {
+      enrollmentFilter.training = trainingId;
+    }
+
+    // Get enrollments for these workers
+    const enrollments = await Enrollment.find(enrollmentFilter)
+      .populate({
+        path: 'worker',
+        populate: ['company']
+      })
+      .populate('training')
+      .sort({ createdAt: -1 });
+
+    // Filter out deleted trainings
+    const filtered = enrollments.filter(e => e.training && !e.training.deletedAt);
+    
+    // Create a map for quick lookup
+    const enrollmentMap = {};
+    filtered.forEach(e => {
+      const key = `${e.worker.sapId}_${e.training._id}`;
+      enrollmentMap[key] = addStatusToEnrollment(e);
+    });
+
+    // Build response with all SAP IDs (including those not found)
+    const results = sapIds.map(sapId => {
+      const normalizedSapId = sapId.trim().toUpperCase();
+      const worker = workers.find(w => w.sapId === normalizedSapId);
+      
+      if (!worker) {
+        return {
+          sapId: normalizedSapId,
+          found: false,
+          worker: null,
+          enrollments: []
+        };
+      }
+
+      // Get all enrollments for this worker (filtered by training if specified)
+      const workerEnrollments = filtered
+        .filter(e => e.worker.sapId === normalizedSapId)
+        .map(addStatusToEnrollment);
+
+      return {
+        sapId: normalizedSapId,
+        found: true,
+        worker: {
+          _id: worker._id,
+          firstName: worker.firstName,
+          lastName: worker.lastName,
+          sapId: worker.sapId,
+          company: worker.company,
+          helmetColor: worker.helmetColor
+        },
+        enrollments: workerEnrollments
+      };
+    });
+
+    res.json({
+      total: sapIds.length,
+      found: results.filter(r => r.found).length,
+      notFound: results.filter(r => !r.found).length,
+      results
+    });
+  } catch (error) {
+    console.error('Bulk check error:', error);
+    res.status(500).json({ message: 'Серверийн алдаа' });
+  }
+});
+
 // Bulk enrollment - enroll multiple workers to a training
 router.post('/bulk', adminAuth, async (req, res) => {
   try {

@@ -63,13 +63,32 @@ router.get('/:id', adminAuth, async (req, res) => {
 // Create poll
 router.post('/', adminAuth, async (req, res) => {
   try {
+    // Company admin can only create polls for their own company
+    let pollCompany = null;
+    let pollTargetAudience = req.body.targetAudience || 'all';
+    
+    if (req.admin.role === 'super_admin') {
+      // Superadmin can set company or leave null for all companies
+      pollCompany = req.body.company || null;
+      if (pollCompany) {
+        pollTargetAudience = 'company';
+      }
+    } else {
+      // Company admin must target their own company only
+      pollCompany = req.admin.company;
+      pollTargetAudience = 'company';
+    }
+    
     const poll = new Poll({
       ...req.body,
       createdBy: req.admin._id,
-      company: req.admin.role === 'super_admin' ? req.body.company : req.admin.company
+      company: pollCompany,
+      targetAudience: pollTargetAudience
     });
     
     await poll.save();
+    await poll.populate('company', 'name');
+    await poll.populate('createdBy', 'username');
     res.status(201).json(poll);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -85,14 +104,28 @@ router.put('/:id', adminAuth, async (req, res) => {
       return res.status(404).json({ message: 'Poll олдсонгүй' });
     }
     
-    // Check permission
-    if (req.admin.role !== 'super_admin' && 
-        poll.createdBy?.toString() !== req.admin._id.toString()) {
-      return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
+    // Check permission - company admin can only edit their company's polls
+    if (req.admin.role !== 'super_admin') {
+      const adminCompanyId = req.admin.company?._id?.toString() || req.admin.company?.toString();
+      const pollCompanyId = poll.company?.toString();
+      
+      if (!pollCompanyId) {
+        return res.status(403).json({ message: 'Та бүх компанийн санал асуулгыг засах эрхгүй' });
+      }
+      if (pollCompanyId !== adminCompanyId) {
+        return res.status(403).json({ message: 'Та зөвхөн өөрийн компанийн санал асуулгыг засах боломжтой' });
+      }
+    }
+    
+    // Company admin cannot change targetAudience to 'all'
+    if (req.admin.role !== 'super_admin') {
+      req.body.targetAudience = 'company';
+      req.body.company = req.admin.company;
     }
     
     Object.assign(poll, req.body);
     await poll.save();
+    await poll.populate('company', 'name');
     
     res.json(poll);
   } catch (error) {
@@ -109,10 +142,17 @@ router.delete('/:id', adminAuth, async (req, res) => {
       return res.status(404).json({ message: 'Poll олдсонгүй' });
     }
     
-    // Check permission
-    if (req.admin.role !== 'super_admin' && 
-        poll.createdBy?.toString() !== req.admin._id.toString()) {
-      return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
+    // Check permission - company admin can only delete their company's polls
+    if (req.admin.role !== 'super_admin') {
+      const adminCompanyId = req.admin.company?._id?.toString() || req.admin.company?.toString();
+      const pollCompanyId = poll.company?.toString();
+      
+      if (!pollCompanyId) {
+        return res.status(403).json({ message: 'Та бүх компанийн санал асуулгыг устгах эрхгүй' });
+      }
+      if (pollCompanyId !== adminCompanyId) {
+        return res.status(403).json({ message: 'Та зөвхөн өөрийн компанийн санал асуулгыг устгах боломжтой' });
+      }
     }
     
     // Delete all responses

@@ -1,0 +1,78 @@
+# Docker Compose for Training System (Development)
+# Usage: docker compose up --build
+
+services:
+  # MongoDB Database
+  mongo:
+    image: mongo:7
+    container_name: training-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - training-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Node.js Backend API
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: training-server
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - HOST=0.0.0.0
+      - MONGODB_URI=mongodb://mongo:27017/training_system
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET:-dev-admin-jwt-secret-change-in-production}
+    volumes:
+      # Mount source for hot reload (exclude node_modules)
+      - ./server:/app
+      - /app/node_modules
+      # Persist uploads
+      - ./server/uploads:/app/uploads
+      # Backups directory
+      - ./backups:/app/backups
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - training-network
+
+  # React Frontend (Vite)
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: training-client
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://server:5001
+    volumes:
+      # Mount source for hot reload (exclude node_modules)
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server
+    networks:
+      - training-network
+
+networks:
+  training-network:
+    driver: bridge
+
+volumes:
+  mongo_data:
+    name: training-mongo-data

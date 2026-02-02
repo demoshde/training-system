@@ -15,6 +15,12 @@ const newsSchema = new mongoose.Schema({
     required: true,
     enum: ['change', 'accident', 'improvement'], // Сүүлд гарсан өөрчлөлт, Ослын сургамж, Сайжруулалт
   },
+  // Company - null means all companies (superadmin only)
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    default: null
+  },
   // Media attachments
   imageUrl: {
     type: String,

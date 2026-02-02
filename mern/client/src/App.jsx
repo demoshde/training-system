@@ -23,8 +23,10 @@ import TrainingWizard from './pages/admin/TrainingWizard';
 import Enrollments from './pages/admin/Enrollments';
 import Admins from './pages/admin/Admins';
 import WorkerCheck from './pages/admin/WorkerCheck';
+import BulkProgress from './pages/admin/BulkProgress';
 import News from './pages/admin/News';
 import Polls from './pages/admin/Polls';
+import Regulations from './pages/admin/Regulations';
 
 function App() {
   return (
@@ -99,6 +101,11 @@ function App() {
               <WorkerCheck />
             </AdminProtectedRoute>
           } />
+          <Route path="/admin/bulk-progress" element={
+            <AdminProtectedRoute>
+              <BulkProgress />
+            </AdminProtectedRoute>
+          } />
           <Route path="/admin/news" element={
             <AdminProtectedRoute>
               <News />
@@ -107,6 +114,11 @@ function App() {
           <Route path="/admin/polls" element={
             <AdminProtectedRoute>
               <Polls />
+            </AdminProtectedRoute>
+          } />
+          <Route path="/admin/regulations" element={
+            <AdminProtectedRoute>
+              <Regulations />
             </AdminProtectedRoute>
           } />
         </Routes>

@@ -17,7 +17,9 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SunOutlined,
-  MoonOutlined
+  MoonOutlined,
+  UnorderedListOutlined,
+  FilePdfOutlined
 } from '@ant-design/icons';
 import { useState } from 'react';
 
@@ -35,12 +37,14 @@ const AdminLayout = ({ children, title }) => {
   const menuItems = [
     { key: '/admin', icon: <DashboardOutlined />, label: 'Хянах самбар' },
     { key: '/admin/check', icon: <SearchOutlined />, label: 'Ажилтан шалгах' },
+    { key: '/admin/bulk-progress', icon: <UnorderedListOutlined />, label: 'Явц & Бүртгэх' },
     ...(admin?.role === 'super_admin' ? [{ key: '/admin/companies', icon: <BankOutlined />, label: 'Компани' }] : []),
     { key: '/admin/workers', icon: <TeamOutlined />, label: 'Ажилтан' },
     { key: '/admin/trainings', icon: <BookOutlined />, label: 'Сургалт' },
     { key: '/admin/enrollments', icon: <FileTextOutlined />, label: 'Бүртгэл' },
     { key: '/admin/news', icon: <NotificationOutlined />, label: 'Мэдээ мэдээлэл' },
     { key: '/admin/polls', icon: <CommentOutlined />, label: 'Санал асуулга' },
+    ...(admin?.role === 'super_admin' ? [{ key: '/admin/regulations', icon: <FilePdfOutlined />, label: 'Журамууд' }] : []),
     ...(admin?.role === 'super_admin' ? [{ key: '/admin/admins', icon: <SettingOutlined />, label: 'Админ' }] : []),
   ];
 

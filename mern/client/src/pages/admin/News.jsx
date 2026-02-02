@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { adminApi } from '../../api';
 import AdminLayout from '../../components/AdminLayout';
+import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import toast from 'react-hot-toast';
 import { 
   Table, Button, Modal, Form, Input, Select, Switch, Space, Tag, Typography, 
@@ -9,7 +10,7 @@ import {
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, UploadOutlined,
   SyncOutlined, WarningOutlined, BulbOutlined, FileImageOutlined, 
-  FilePdfOutlined, YoutubeOutlined, PlaySquareOutlined
+  FilePdfOutlined, YoutubeOutlined, PlaySquareOutlined, GlobalOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
@@ -23,7 +24,10 @@ const CATEGORIES = [
 ];
 
 const News = () => {
+  const { admin } = useAdminAuth();
+  const isSuperAdmin = admin?.role === 'super_admin';
   const [news, setNews] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingNews, setEditingNews] = useState(null);
@@ -37,12 +41,24 @@ const News = () => {
 
   useEffect(() => {
     fetchNews();
+    if (isSuperAdmin) {
+      fetchCompanies();
+    }
   }, [filterCategory]);
+
+  const fetchCompanies = async () => {
+    try {
+      const response = await adminApi.get('/companies');
+      setCompanies(response.data);
+    } catch (error) {
+      console.error('Failed to fetch companies');
+    }
+  };
 
   const fetchNews = async () => {
     try {
       const params = filterCategory ? `?category=${filterCategory}` : '';
-      const response = await adminApi.get(`/news${params}`);
+      const response = await adminApi.get(`/news/admin${params}`);
       setNews(response.data);
     } catch (error) {
       toast.error('Мэдээ татахад алдаа гарлаа');
@@ -58,6 +74,7 @@ const News = () => {
         title: newsItem.title,
         content: newsItem.content,
         category: newsItem.category,
+        company: newsItem.company?._id || null,
         isActive: newsItem.isActive,
         imageUrl: newsItem.imageUrl || '',
         pdfUrl: newsItem.pdfUrl || '',
@@ -67,7 +84,7 @@ const News = () => {
     } else {
       setEditingNews(null);
       form.resetFields();
-      form.setFieldsValue({ category: 'change', isActive: true });
+      form.setFieldsValue({ category: 'change', isActive: true, company: isSuperAdmin ? null : admin?.company });
     }
     setModalVisible(true);
   };
@@ -156,6 +173,18 @@ const News = () => {
       },
     },
     {
+      title: 'Хамрах хүрээ',
+      key: 'company',
+      width: 150,
+      render: (_, record) => (
+        record.company ? (
+          <Tag color="blue">{record.company.name}</Tag>
+        ) : (
+          <Tag icon={<GlobalOutlined />} color="purple">Бүх компани</Tag>
+        )
+      ),
+    },
+    {
       title: 'Медиа',
       key: 'media',
       width: 120,
@@ -197,31 +226,40 @@ const News = () => {
       title: 'Үйлдэл',
       key: 'actions',
       width: 120,
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="Харах">
-            <Button type="text" icon={<EyeOutlined />} onClick={() => {
-              setPreviewNews(record);
-              setPreviewVisible(true);
-            }} />
-          </Tooltip>
-          <Tooltip title="Засах">
-            <Button type="text" icon={<EditOutlined />} onClick={() => openModal(record)} />
-          </Tooltip>
-          <Popconfirm
-            title="Мэдээ устгах"
-            description={`"${record.title}" мэдээг устгах уу?`}
-            onConfirm={() => handleDelete(record)}
-            okText="Устгах"
-            cancelText="Цуцлах"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Устгах">
-              <Button type="text" danger icon={<DeleteOutlined />} />
+      render: (_, record) => {
+        // Company admin cannot edit/delete global news (company: null)
+        const canEditDelete = isSuperAdmin || record.company;
+        
+        return (
+          <Space>
+            <Tooltip title="Харах">
+              <Button type="text" icon={<EyeOutlined />} onClick={() => {
+                setPreviewNews(record);
+                setPreviewVisible(true);
+              }} />
             </Tooltip>
-          </Popconfirm>
-        </Space>
-      ),
+            {canEditDelete && (
+              <>
+                <Tooltip title="Засах">
+                  <Button type="text" icon={<EditOutlined />} onClick={() => openModal(record)} />
+                </Tooltip>
+                <Popconfirm
+                  title="Мэдээ устгах"
+                  description={`"${record.title}" мэдээг устгах уу?`}
+                  onConfirm={() => handleDelete(record)}
+                  okText="Устгах"
+                  cancelText="Цуцлах"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Tooltip title="Устгах">
+                    <Button type="text" danger icon={<DeleteOutlined />} />
+                  </Tooltip>
+                </Popconfirm>
+              </>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -296,6 +334,28 @@ const News = () => {
                 ))}
               </Select>
             </Form.Item>
+
+            {isSuperAdmin ? (
+              <Form.Item
+                name="company"
+                label="Хамрах хүрээ"
+              >
+                <Select placeholder="Бүх компани" allowClear>
+                  {companies.map(c => (
+                    <Select.Option key={c._id} value={c._id}>
+                      {c.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            ) : (
+              <Form.Item label="Хамрах хүрээ">
+                <Tag color="blue">{admin?.company?.name || 'Таны компани'}</Tag>
+                <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+                  (Зөвхөн өөрийн компани дотор түгээх боломжтой)
+                </Text>
+              </Form.Item>
+            )}
 
             <Form.Item
               name="content"

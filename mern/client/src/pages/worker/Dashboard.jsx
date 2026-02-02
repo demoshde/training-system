@@ -21,7 +21,8 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   EyeIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  BookOpenIcon
 } from '@heroicons/react/24/outline';
 
 const CATEGORIES = [
@@ -52,8 +53,11 @@ const Dashboard = () => {
   const [submittingPoll, setSubmittingPoll] = useState(false);
   const [submittedResponse, setSubmittedResponse] = useState(null);
   
+  // Regulations state
+  const [regulations, setRegulations] = useState([]);
+  
   // Tab state
-  const [activeTab, setActiveTab] = useState('trainings'); // 'trainings', 'news', or 'polls'
+  const [activeTab, setActiveTab] = useState('trainings'); // 'trainings', 'news', 'polls', or 'regulations'
 
   useEffect(() => {
     // Only fetch when worker is authenticated
@@ -61,6 +65,7 @@ const Dashboard = () => {
       fetchEnrollments();
       fetchNews();
       fetchPolls();
+      fetchRegulations();
     }
   }, [worker]);
 
@@ -90,6 +95,15 @@ const Dashboard = () => {
       setPolls(res.data);
     } catch (error) {
       console.error('Polls fetch error:', error);
+    }
+  };
+
+  const fetchRegulations = async () => {
+    try {
+      const res = await api.get('/regulations');
+      setRegulations(res.data);
+    } catch (error) {
+      console.error('Regulations fetch error:', error);
     }
   };
 
@@ -420,6 +434,25 @@ const Dashboard = () => {
                 activeTab === 'polls' ? 'bg-white/20' : 'bg-purple-100 text-purple-700'
               }`}>
                 {polls.filter(p => !p.hasResponded).length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('regulations')}
+            className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${
+              activeTab === 'regulations'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <BookOpenIcon className="h-5 w-5" />
+            <span className="hidden sm:inline">Журамууд</span>
+            <span className="sm:hidden">Журам</span>
+            {regulations.length > 0 && (
+              <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+                activeTab === 'regulations' ? 'bg-white/20' : 'bg-green-100 text-green-700'
+              }`}>
+                {regulations.length}
               </span>
             )}
           </button>
@@ -852,6 +885,69 @@ const Dashboard = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Regulations Tab */}
+        {activeTab === 'regulations' && (
+          <div>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Журамууд</h3>
+            
+            {regulations.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-xl">
+                <BookOpenIcon className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">Одоогоор журам байхгүй байна</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {regulations.map((reg) => {
+                  const categoryColors = {
+                    safety: { bg: 'bg-red-100', text: 'text-red-700', label: 'Аюулгүй ажиллагаа' },
+                    work: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Ажлын журам' },
+                    environment: { bg: 'bg-green-100', text: 'text-green-700', label: 'Байгаль орчин' },
+                    other: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Бусад' }
+                  };
+                  const cat = categoryColors[reg.category] || categoryColors.other;
+                  
+                  return (
+                    <div
+                      key={reg._id}
+                      className="bg-white rounded-xl shadow-sm p-6 transition hover:shadow-md"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="px-2 py-1 text-sm font-bold bg-blue-600 text-white rounded">
+                              {reg.regulationNumber}
+                            </span>
+                            <h4 className="font-semibold text-gray-900">{reg.title}</h4>
+                            <span className={`px-2 py-1 text-xs rounded-full ${cat.bg} ${cat.text}`}>
+                              {cat.label}
+                            </span>
+                          </div>
+                          {reg.description && (
+                            <p className="text-gray-600 text-sm mb-2">{reg.description}</p>
+                          )}
+                          <p className="text-sm text-gray-500">
+                            Нэмсэн: {new Date(reg.createdAt).toLocaleDateString('mn-MN')}
+                          </p>
+                        </div>
+                        
+                        <a
+                          href={reg.pdfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                        >
+                          <DocumentIcon className="h-5 w-5" />
+                          PDF харах
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

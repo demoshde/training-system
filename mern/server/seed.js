@@ -12,7 +12,7 @@ const Enrollment = require('./models/Enrollment');
 // Auto backup before seeding
 const createBackup = () => {
   return new Promise((resolve, reject) => {
-    const backupDir = path.join(__dirname, '../backups');
+    const backupDir = path.join(__dirname, 'backups');
     if (!fs.existsSync(backupDir)) {
       fs.mkdirSync(backupDir, { recursive: true });
     }
