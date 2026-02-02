@@ -3,6 +3,7 @@ const Worker = require('../models/Worker');
 const Enrollment = require('../models/Enrollment');
 const Certificate = require('../models/Certificate');
 const SupervisorFeedback = require('../models/SupervisorFeedback');
+const { adminAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
