@@ -3,12 +3,11 @@ const Worker = require('../models/Worker');
 const Enrollment = require('../models/Enrollment');
 const Certificate = require('../models/Certificate');
 const SupervisorFeedback = require('../models/SupervisorFeedback');
-const { adminAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Check worker by SAP ID (requires admin auth for security)
-router.get('/check/:sapId', adminAuth, async (req, res) => {
+// Check worker by SAP ID (public endpoint for supervisors)
+router.get('/check/:sapId', async (req, res) => {
   try {
     const worker = await Worker.findOne({ sapId: req.params.sapId })
       .populate('company');
