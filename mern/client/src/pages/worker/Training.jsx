@@ -302,19 +302,26 @@ const Training = () => {
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          padding: '32px 16px' 
+          padding: 'clamp(16px, 4vw, 32px)' 
         }}>
-          <Card style={{ maxWidth: 400, textAlign: 'center' }}>
-            <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
-            <Title level={3}>{training.title}</Title>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
+          <Card style={{ maxWidth: 400, width: '100%', textAlign: 'center', padding: 'clamp(12px, 3vw, 24px)' }}>
+            <div style={{ fontSize: 'clamp(48px, 12vw, 64px)', marginBottom: 'clamp(12px, 3vw, 16px)' }}>✅</div>
+            <Title level={3} style={{ fontSize: 'clamp(16px, 4vw, 24px)', marginBottom: 'clamp(12px, 3vw, 16px)' }}>{training.title}</Title>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 'clamp(16px, 4vw, 24px)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>
               Та энэ сургалтыг амжилттай дуусгасан байна.
             </Text>
-            <Space>
-              <Button type="primary" onClick={() => navigate(`/certificate/${trainingId}`)}>
+            <Space wrap style={{ justifyContent: 'center' }}>
+              <Button 
+                type="primary" 
+                onClick={() => navigate(`/certificate/${trainingId}`)}
+                style={{ fontSize: 'clamp(12px, 2.5vw, 14px)' }}
+              >
                 Гэрчилгээ харах
               </Button>
-              <Button onClick={() => navigate('/')}>
+              <Button 
+                onClick={() => navigate('/')}
+                style={{ fontSize: 'clamp(12px, 2.5vw, 14px)' }}
+              >
                 Нүүр хуудас
               </Button>
             </Space>
@@ -332,18 +339,18 @@ const Training = () => {
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          padding: '32px 16px' 
+          padding: 'clamp(16px, 4vw, 32px)' 
         }}>
-          <Card style={{ maxWidth: 400, textAlign: 'center' }}>
-            <div style={{ fontSize: 64, marginBottom: 16 }}>📝</div>
-            <Title level={3}>{training.title}</Title>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+          <Card style={{ maxWidth: 400, width: '100%', textAlign: 'center', padding: 'clamp(12px, 3vw, 24px)' }}>
+            <div style={{ fontSize: 'clamp(48px, 12vw, 64px)', marginBottom: 'clamp(12px, 3vw, 16px)' }}>📝</div>
+            <Title level={3} style={{ fontSize: 'clamp(16px, 4vw, 24px)', marginBottom: 'clamp(12px, 3vw, 16px)' }}>{training.title}</Title>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 'clamp(6px, 1.5vw, 8px)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>
               {training.description}
             </Text>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 24, fontSize: 12 }}>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 'clamp(16px, 4vw, 24px)', fontSize: 'clamp(11px, 2vw, 12px)' }}>
               Энэ сургалт {questions.length} асуулттай шалгалттай. Тэнцэх оноо: {training.passingScore}%
             </Text>
-            <Button type="primary" block onClick={handleStartQuiz}>
+            <Button type="primary" block onClick={handleStartQuiz} style={{ fontSize: 'clamp(12px, 3vw, 14px)', padding: 'clamp(8px, 2vw, 10px) 0' }}>
               Шалгалт эхлүүлэх
             </Button>
           </Card>
@@ -360,15 +367,20 @@ const Training = () => {
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          padding: '32px 16px' 
+          padding: 'clamp(16px, 4vw, 32px)' 
         }}>
-          <Card style={{ maxWidth: 400, textAlign: 'center' }}>
-            <div style={{ fontSize: 64, marginBottom: 16 }}>📚</div>
-            <Title level={3}>{training.title}</Title>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
+          <Card style={{ maxWidth: 400, width: '100%', textAlign: 'center', padding: 'clamp(12px, 3vw, 24px)' }}>
+            <div style={{ fontSize: 'clamp(48px, 12vw, 64px)', marginBottom: 'clamp(12px, 3vw, 16px)' }}>✅</div>
+            <Title level={3} style={{ fontSize: 'clamp(16px, 4vw, 24px)', marginBottom: 'clamp(12px, 3vw, 16px)' }}>{training.title}</Title>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 'clamp(16px, 4vw, 24px)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>
               {training.description}
             </Text>
-            <Button type="primary" block onClick={handleCompleteWithoutQuiz}>
+            <Button 
+              type="primary" 
+              block 
+              onClick={handleCompleteWithoutQuiz}
+              style={{ fontSize: 'clamp(12px, 3vw, 14px)', padding: 'clamp(8px, 2vw, 10px) 0' }}
+            >
               Сургалт дуусгах
             </Button>
           </Card>
@@ -380,29 +392,41 @@ const Training = () => {
   // Show quiz
   if (showQuiz) {
     return (
-      <div style={{ minHeight: '100vh', background: token.colorBgLayout, padding: '32px 16px' }}>
+      <div style={{ minHeight: '100vh', background: token.colorBgLayout, padding: 'clamp(12px, 3vw, 32px) clamp(8px, 2vw, 16px)' }}>
         <div style={{ maxWidth: 768, margin: '0 auto' }}>
-          <Card>
-            <Title level={3} style={{ marginBottom: 24 }}>
+          <Card style={{ padding: 'clamp(12px, 3vw, 24px)' }}>
+            <Title level={3} style={{ marginBottom: 'clamp(16px, 4vw, 24px)', fontSize: 'clamp(16px, 4vw, 24px)' }}>
               {training.title} - Шалгалт
             </Title>
 
             {quizSubmitted ? (
               <Result
-                icon={<span style={{ fontSize: 64 }}>{quizResult.passed ? '🎉' : '😢'}</span>}
+                icon={<span style={{ fontSize: 'clamp(48px, 12vw, 64px)' }}>{quizResult.passed ? '🎉' : '😢'}</span>}
                 title={
-                  <span style={{ color: quizResult.passed ? token.colorSuccess : token.colorError }}>
+                  <span style={{ color: quizResult.passed ? token.colorSuccess : token.colorError, fontSize: 'clamp(16px, 4vw, 20px)' }}>
                     {quizResult.passed ? 'Баяр хүргэе!' : 'Тэнцсэнгүй'}
                   </span>
                 }
-                subTitle={`Таны оноо: ${quizResult.score}/${shuffledQuestions.length} (${quizResult.percentage}%)`}
+                subTitle={
+                  <span style={{ fontSize: 'clamp(13px, 3vw, 14px)' }}>
+                    Таны оноо: {quizResult.score}/{shuffledQuestions.length} ({quizResult.percentage}%)
+                  </span>
+                }
                 extra={
                   quizResult.passed ? (
-                    <Button type="primary" onClick={() => navigate(`/certificate/${trainingId}`)}>
+                    <Button 
+                      type="primary" 
+                      onClick={() => navigate(`/certificate/${trainingId}`)}
+                      style={{ fontSize: 'clamp(12px, 3vw, 14px)' }}
+                    >
                       Гэрчилгээ харах
                     </Button>
                   ) : (
-                    <Button type="primary" onClick={handleStartQuiz}>
+                    <Button 
+                      type="primary" 
+                      onClick={handleStartQuiz}
+                      style={{ fontSize: 'clamp(12px, 3vw, 14px)' }}
+                    >
                       Дахин өгөх
                     </Button>
                   )
@@ -414,9 +438,9 @@ const Training = () => {
                   <Card 
                     key={question._id} 
                     size="small" 
-                    style={{ marginBottom: 16 }}
+                    style={{ marginBottom: 'clamp(12px, 3vw, 16px)' }}
                   >
-                    <Text strong style={{ display: 'block', marginBottom: 12 }}>
+                    <Text strong style={{ display: 'block', marginBottom: 'clamp(8px, 2vw, 12px)', fontSize: 'clamp(13px, 3vw, 15px)', lineHeight: 1.5 }}>
                       {index + 1}. {question.questionText}
                     </Text>
                     <Radio.Group
@@ -429,16 +453,17 @@ const Training = () => {
                           <div
                             key={option._id}
                             style={{
-                              padding: '12px 16px',
-                              borderRadius: 8,
+                              padding: 'clamp(8px, 2vw, 12px) clamp(12px, 3vw, 16px)',
+                              borderRadius: 'clamp(6px, 1.5vw, 8px)',
                               border: `1px solid ${answers[question._id] === option._id ? token.colorPrimary : token.colorBorder}`,
                               background: answers[question._id] === option._id ? token.colorPrimaryBg : token.colorBgContainer,
                               cursor: 'pointer',
-                              transition: 'all 0.2s'
+                              transition: 'all 0.2s',
+                              fontSize: 'clamp(12px, 2.5vw, 14px)'
                             }}
                             onClick={() => handleAnswerChange(question._id, option._id)}
                           >
-                            <Radio value={option._id}>{option.text}</Radio>
+                            <Radio value={option._id} style={{ fontSize: 'clamp(12px, 2.5vw, 14px)' }}>{option.text}</Radio>
                           </div>
                         ))}
                       </Space>
@@ -446,7 +471,7 @@ const Training = () => {
                   </Card>
                 ))}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 'clamp(12px, 3vw, 16px)', flexWrap: 'wrap', gap: 'clamp(8px, 2vw, 12px)' }}>
                   <Button
                     type="link"
                     onClick={() => {
@@ -497,37 +522,50 @@ const Training = () => {
       <header style={{ 
         background: '#374151', 
         color: 'white', 
-        padding: '12px 16px', 
+        padding: '8px 12px', 
         display: 'flex', 
         justifyContent: 'space-between', 
-        alignItems: 'center' 
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '8px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1 }}>
           <Button
             type="text"
             icon={<HomeOutlined />}
             onClick={handleExit}
-            style={{ color: 'white', marginRight: 16 }}
+            style={{ color: 'white', marginRight: 8, padding: '4px 8px' }}
             title="Гарах"
           />
-          <Text strong style={{ color: 'white' }}>{training.title}</Text>
+          <Text 
+            strong 
+            style={{ 
+              color: 'white',
+              fontSize: 'clamp(12px, 3vw, 16px)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {training.title}
+          </Text>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Text type="secondary" style={{ color: '#9ca3af' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Text type="secondary" style={{ color: '#9ca3af', fontSize: 'clamp(11px, 2.5vw, 14px)', whiteSpace: 'nowrap' }}>
             {currentSlide + 1} / {training.slides.length}
           </Text>
-          <Button size="small" onClick={handleExit}>
+          <Button size="small" onClick={handleExit} style={{ fontSize: 'clamp(11px, 2.5vw, 14px)', padding: '4px 12px' }}>
             Гарах
           </Button>
         </div>
       </header>
 
       {/* Slide content */}
-      <main style={{ flex: 1, overflow: 'auto', padding: '8px 16px' }}>
+      <main style={{ flex: 1, overflow: 'auto', padding: 'clamp(4px, 2vw, 16px)' }}>
         <div style={{ maxWidth: 896, width: '100%', margin: '0 auto' }}>
           <Card 
             styles={{ body: { padding: 0 } }}
-            style={{ borderRadius: 12, overflow: 'hidden' }}
+            style={{ borderRadius: 'clamp(8px, 2vw, 12px)', overflow: 'hidden' }}
           >
             {/* Video Content (YouTube) */}
             {slide?.videoUrl && (
@@ -544,7 +582,7 @@ const Training = () => {
             
             {/* PDF Content - support both old pdfUrl and new url field */}
             {(slide?.pdfUrl || (slide?.url && slide?.contentType === 'application/pdf') || (slide?.type === 'file' && slide?.url?.endsWith('.pdf'))) && !slide?.videoUrl && !isPowerPoint(slide) && (
-              <div style={{ position: 'relative', background: token.colorBgLayout, aspectRatio: '4/3' }}>
+              <div style={{ position: 'relative', background: token.colorBgLayout, aspectRatio: '4/3', minHeight: '300px' }}>
                 <iframe
                   src={`${getFileUrl(slide.pdfUrl || slide.url)}#toolbar=0&view=FitH`}
                   style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, border: 0 }}
@@ -558,14 +596,18 @@ const Training = () => {
                     setShowPdfViewer(true);
                     setPdfZoom(100);
                   }}
+                  size="small"
                   style={{ 
                     position: 'absolute', 
-                    top: 12, 
-                    right: 12, 
-                    zIndex: 10 
+                    top: 'clamp(8px, 2vw, 12px)', 
+                    right: 'clamp(8px, 2vw, 12px)', 
+                    zIndex: 10,
+                    fontSize: 'clamp(11px, 2.5vw, 14px)',
+                    padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 12px)'
                   }}
                 >
-                  Томруулах
+                  <span style={{ display: 'none' }}>Томруулах</span>
+                  <ExpandOutlined />
                 </Button>
               </div>
             )}
@@ -594,14 +636,18 @@ const Training = () => {
                   type="primary"
                   icon={<ExpandOutlined />}
                   onClick={() => setShowGoogleSlidesFullscreen(true)}
+                  size="small"
                   style={{ 
                     position: 'absolute', 
-                    top: 12, 
-                    right: 12, 
-                    zIndex: 10 
+                    top: 'clamp(8px, 2vw, 12px)', 
+                    right: 'clamp(8px, 2vw, 12px)', 
+                    zIndex: 10,
+                    fontSize: 'clamp(11px, 2.5vw, 14px)',
+                    padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 12px)'
                   }}
                 >
-                  Бүтэн дэлгэц
+                  <span style={{ display: 'none' }}>Бүтэн дэлгэц</span>
+                  <ExpandOutlined />
                 </Button>
               </div>
             )}
@@ -659,12 +705,38 @@ const Training = () => {
             )}
             
             {/* Image Content - support both old imageUrl and new url field */}
-            {(slide?.imageUrl || (slide?.url && slide?.contentType?.startsWith('image/')) || (slide?.type === 'file' && slide?.url && !slide?.url?.endsWith('.pdf'))) && !slide?.pdfUrl && !slide?.videoUrl && !(slide?.contentType === 'application/pdf') && !isPowerPoint(slide) && !isGoogleSlides(slide) && (
-              <div style={{ aspectRatio: '16/9', background: token.colorBgLayout }}>
+            {(slide?.imageUrl || 
+              (slide?.url && slide?.contentType?.startsWith('image/')) || 
+              (slide?.type === 'image') ||
+              (slide?.url && slide?.url?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i))) && 
+              !slide?.pdfUrl && 
+              !slide?.videoUrl && 
+              !isPowerPoint(slide) && 
+              !isGoogleSlides(slide) && (
+              <div style={{ 
+                width: '100%',
+                maxHeight: '70vh',
+                background: token.colorBgLayout,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '16px'
+              }}>
                 <img
                   src={getFileUrl(slide.imageUrl || slide.url)}
                   alt={slide.title || 'Slide'}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '100%', 
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain' 
+                  }}
+                  onError={(e) => {
+                    console.error('Image load error:', slide);
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = '<div style="padding: 48px; text-align: center; color: #ef4444;">⚠️ Зураг ачааллахад алдаа гарлаа</div>';
+                  }}
                 />
               </div>
             )}
@@ -672,20 +744,20 @@ const Training = () => {
             {/* Text-only slide */}
             {slide?.type === 'text' && !slide?.url && !slide?.imageUrl && !slide?.pdfUrl && !slide?.videoUrl && (
               <div style={{ 
-                padding: 32, 
+                padding: 'clamp(16px, 4vw, 32px)', 
                 background: 'linear-gradient(to bottom right, #eff6ff, #e0e7ff)', 
-                minHeight: 300, 
+                minHeight: 'clamp(200px, 40vh, 300px)', 
                 display: 'flex', 
                 flexDirection: 'column', 
                 justifyContent: 'center' 
               }}>
                 {slide?.title && (
-                  <Title level={3} style={{ textAlign: 'center', marginBottom: 16 }}>
+                  <Title level={3} style={{ textAlign: 'center', marginBottom: 'clamp(12px, 3vw, 16px)', fontSize: 'clamp(16px, 4vw, 24px)' }}>
                     {slide.title}
                   </Title>
                 )}
                 {slide?.content && (
-                  <Paragraph style={{ textAlign: 'center', whiteSpace: 'pre-wrap', fontSize: 16 }}>
+                  <Paragraph style={{ textAlign: 'center', whiteSpace: 'pre-wrap', fontSize: 'clamp(13px, 3vw, 16px)', lineHeight: 1.6 }}>
                     {slide.content}
                   </Paragraph>
                 )}
@@ -694,16 +766,20 @@ const Training = () => {
             
             {/* Title and Content for media slides */}
             {(slide?.imageUrl || slide?.pdfUrl || slide?.videoUrl || (slide?.url && slide?.type !== 'text')) && (
-              <div style={{ padding: '16px 24px' }}>
+              <div style={{ padding: 'clamp(12px, 3vw, 24px)' }}>
                 {slide?.title && (
-                  <Title level={4} style={{ marginBottom: 12 }}>
+                  <Title level={4} style={{ marginBottom: 'clamp(8px, 2vw, 12px)', fontSize: 'clamp(14px, 3.5vw, 20px)' }}>
                     {slide.title}
                   </Title>
                 )}
                 {slide?.content && (
                   <div 
                     dangerouslySetInnerHTML={{ __html: slide.content }}
-                    style={{ color: token.colorTextSecondary }}
+                    style={{ 
+                      color: token.colorTextSecondary,
+                      fontSize: 'clamp(12px, 2.5vw, 14px)',
+                      lineHeight: 1.6
+                    }}
                   />
                 )}
               </div>
@@ -712,21 +788,95 @@ const Training = () => {
         </div>
       </main>
 
+      {/* Floating Navigation Buttons for Mobile */}
+      {!isLastSlide && (
+        <>
+          {/* Previous Button - Left Side */}
+          {currentSlide > 0 && (
+            <Button
+              type="primary"
+              shape="circle"
+              size="large"
+              icon={<LeftOutlined />}
+              onClick={() => handleSlideChange(currentSlide - 1)}
+              style={{
+                position: 'fixed',
+                left: 'clamp(8px, 2vw, 16px)',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 'clamp(48px, 12vw, 64px)',
+                height: 'clamp(48px, 12vw, 64px)',
+                fontSize: 'clamp(18px, 4vw, 24px)',
+                zIndex: 100,
+                background: 'rgba(55, 65, 81, 0.9)',
+                borderColor: 'rgba(55, 65, 81, 0.9)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            />
+          )}
+
+          {/* Next Button - Right Side */}
+          <Button
+            type="primary"
+            shape="circle"
+            size="large"
+            icon={canProceed ? <RightOutlined /> : null}
+            onClick={() => handleSlideChange(currentSlide + 1)}
+            disabled={!canProceed}
+            style={{
+              position: 'fixed',
+              right: 'clamp(8px, 2vw, 16px)',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 'clamp(48px, 12vw, 64px)',
+              height: 'clamp(48px, 12vw, 64px)',
+              fontSize: 'clamp(18px, 4vw, 24px)',
+              zIndex: 100,
+              background: canProceed ? 'rgba(37, 99, 235, 0.9)' : 'rgba(75, 85, 99, 0.6)',
+              borderColor: canProceed ? 'rgba(37, 99, 235, 0.9)' : 'rgba(107, 114, 128, 0.6)',
+              boxShadow: canProceed ? '0 4px 12px rgba(37, 99, 235, 0.4)' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: canProceed ? 'pointer' : 'not-allowed'
+            }}
+          >
+            {!canProceed && (
+              <span style={{
+                fontSize: 'clamp(14px, 3vw, 18px)',
+                fontWeight: 'bold',
+                color: 'white'
+              }}>
+                {timeRemaining}
+              </span>
+            )}
+          </Button>
+        </>
+      )}
+
       {/* Navigation */}
-      <footer style={{ background: '#374151', padding: '16px' }}>
-        <div style={{ maxWidth: 896, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <footer style={{ background: '#374151', padding: 'clamp(8px, 2vw, 16px)' }}>
+        <div style={{ maxWidth: 896, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
           <Button
             type="text"
             icon={<LeftOutlined />}
             onClick={() => handleSlideChange(currentSlide - 1)}
             disabled={currentSlide === 0}
-            style={{ color: currentSlide === 0 ? '#6b7280' : 'white' }}
+            style={{ 
+              color: currentSlide === 0 ? '#6b7280' : 'white',
+              fontSize: 'clamp(11px, 2.5vw, 14px)',
+              padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 15px)'
+            }}
           >
-            Өмнөх
+            <span style={{ display: 'none' }}>Өмнөх</span>
+            <span style={{ display: 'inline' }}>←</span>
           </Button>
 
           {/* Progress dots */}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 'clamp(4px, 1vw, 8px)', flexWrap: 'wrap', justifyContent: 'center', flex: 1, maxWidth: '60%' }}>
             {training.slides.map((_, index) => {
               const canGoToSlide = index <= currentSlide || canProceed || enrollment?.isPassed;
               return (
@@ -735,9 +885,9 @@ const Training = () => {
                   onClick={() => canGoToSlide && handleSlideChange(index)}
                   disabled={!canGoToSlide}
                   style={{
-                    width: index === currentSlide ? 16 : 8,
-                    height: 8,
-                    borderRadius: 4,
+                    width: index === currentSlide ? 'clamp(12px, 3vw, 16px)' : 'clamp(6px, 1.5vw, 8px)',
+                    height: 'clamp(6px, 1.5vw, 8px)',
+                    borderRadius: 'clamp(3px, 1vw, 4px)',
                     border: 'none',
                     cursor: canGoToSlide ? 'pointer' : 'not-allowed',
                     transition: 'all 0.2s',
@@ -771,28 +921,30 @@ const Training = () => {
                 style={{ 
                   background: canProceed ? '#16a34a' : 'rgba(255,255,255,0.1)',
                   borderColor: canProceed ? '#16a34a' : 'rgba(255,255,255,0.3)',
-                  color: canProceed ? 'white' : 'rgba(255,255,255,0.6)'
+                  color: canProceed ? 'white' : 'rgba(255,255,255,0.6)',
+                  fontSize: 'clamp(11px, 2.5vw, 14px)',
+                  padding: 'clamp(4px, 1vw, 8px) clamp(12px, 3vw, 15px)'
                 }}
               >
                 {canProceed ? (
-                  questions.length > 0 ? 'Шалгалт өгөх' : 'Дуусгах'
+                  <span style={{ whiteSpace: 'nowrap' }}>{questions.length > 0 ? 'Шалгалт' : 'Дуусгах'}</span>
                 ) : (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 'clamp(4px, 1vw, 8px)' }}>
                     <span style={{ 
-                      width: 24, 
-                      height: 24, 
+                      width: 'clamp(18px, 4vw, 24px)', 
+                      height: 'clamp(18px, 4vw, 24px)', 
                       borderRadius: '50%', 
                       background: '#2563eb',
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center',
-                      fontSize: 12,
+                      fontSize: 'clamp(10px, 2vw, 12px)',
                       fontWeight: 'bold',
                       color: 'white'
                     }}>
                       {timeRemaining}
                     </span>
-                    {questions.length > 0 ? 'Шалгалт өгөх' : 'Дуусгах'}
+                    <span style={{ whiteSpace: 'nowrap' }}>{questions.length > 0 ? 'Шалгалт' : 'Дуусгах'}</span>
                   </span>
                 )}
               </Button>
@@ -805,31 +957,34 @@ const Training = () => {
               style={{ 
                 color: canProceed ? 'white' : 'rgba(255,255,255,0.6)',
                 background: canProceed ? 'transparent' : 'rgba(255,255,255,0.1)',
-                borderColor: canProceed ? 'transparent' : 'rgba(255,255,255,0.3)'
+                borderColor: canProceed ? 'transparent' : 'rgba(255,255,255,0.3)',
+                fontSize: 'clamp(11px, 2.5vw, 14px)',
+                padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 15px)'
               }}
             >
               {canProceed ? (
-                <>
-                  Дараах <RightOutlined />
-                </>
+                <span>
+                  <span style={{ display: 'none' }}>Дараах</span>
+                  <span style={{ display: 'inline' }}>→</span>
+                </span>
               ) : (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 'clamp(4px, 1vw, 8px)' }}>
                   <span style={{ 
-                    width: 28, 
-                    height: 28, 
+                    width: 'clamp(20px, 4vw, 28px)', 
+                    height: 'clamp(20px, 4vw, 28px)', 
                     borderRadius: '50%', 
                     background: '#2563eb', 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center',
-                    fontSize: 12,
+                    fontSize: 'clamp(10px, 2vw, 12px)',
                     fontWeight: 'bold',
                     color: 'white',
                     animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
                   }}>
                     {timeRemaining}
                   </span>
-                  Дараах
+                  <span style={{ display: 'none' }}>Дараах</span>
                 </span>
               )}
             </Button>

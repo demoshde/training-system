@@ -105,7 +105,7 @@ const SortableSlide = ({ id, index, slide, onRemove, onPreview, onEdit }) => {
                   <FileTextOutlined /> Текст слайд
                 </span>
               ) : isGoogleSlides ? 'Google Slides' : isPpt ? 'PowerPoint файл' : isPdf ? 'PDF файл' : slide.fileName || 'Зураг'}
-              <span style={{ marginLeft: 8, color: token.colorPrimary }}>• {slide.duration || 30} сек</span>
+              <span style={{ marginLeft: 8, color: token.colorPrimary }}>• {slide.duration || 10} сек</span>
             </Text>
             {slide.content && (
               <Text type="secondary" style={{ fontSize: 11, display: 'block' }} ellipsis>
@@ -155,7 +155,7 @@ const StepSlides = () => {
   const [editModal, setEditModal] = useState({ visible: false, index: null, slide: null });
   const [editUploading, setEditUploading] = useState(false);
   const [createModal, setCreateModal] = useState({ visible: false, type: 'file' });
-  const [newSlide, setNewSlide] = useState({ title: '', content: '', type: 'text', duration: 30 });
+  const [newSlide, setNewSlide] = useState({ title: '', content: '', type: 'text', duration: 10 });
   const [googleSlidesModal, setGoogleSlidesModal] = useState({ visible: false });
   const [googleSlidesUrl, setGoogleSlidesUrl] = useState('');
   const [googleSlidesTitle, setGoogleSlidesTitle] = useState('');
@@ -229,7 +229,7 @@ const StepSlides = () => {
         fileName: file.name,
         contentType: file.type,
         type: 'file',
-        duration: 30,
+        duration: 10,
         order: fields.length
       };
       
@@ -270,7 +270,7 @@ const StepSlides = () => {
         title: slide.title || '',
         content: slide.content || '',
         type: slide.type || (slide.url ? 'file' : 'text'),
-        duration: slide.duration || 30
+        duration: slide.duration || 10
       }
     });
   };
@@ -301,7 +301,7 @@ const StepSlides = () => {
         fileName: editModal.slide.fileName,
         contentType: editModal.slide.contentType,
         type: editModal.slide.type,
-        duration: editModal.slide.duration || 30
+        duration: editModal.slide.duration || 10
       };
       setValue('slides', updatedSlides);
       message.success('Слайд амжилттай шинэчлэгдлээ');
@@ -320,13 +320,13 @@ const StepSlides = () => {
       title: newSlide.title || `Текст слайд #${fields.length + 1}`,
       content: newSlide.content,
       type: 'text',
-      duration: newSlide.duration || 30,
+      duration: newSlide.duration || 10,
       order: fields.length
     };
     
     append(textSlide);
     message.success('Текст слайд амжилттай нэмэгдлээ');
-    setNewSlide({ title: '', content: '', type: 'text', duration: 30 });
+    setNewSlide({ title: '', content: '', type: 'text', duration: 10 });
     setCreateModal({ visible: false, type: 'file' });
   };
   
@@ -702,7 +702,7 @@ const StepSlides = () => {
         onOk={handleCreateTextSlide}
         onCancel={() => {
           setCreateModal({ visible: false, type: 'file' });
-          setNewSlide({ title: '', content: '', type: 'text', duration: 30 });
+          setNewSlide({ title: '', content: '', type: 'text', duration: 10 });
         }}
         width={700}
         centered
@@ -771,7 +771,7 @@ const StepSlides = () => {
                 min={5}
                 max={300}
                 value={newSlide.duration}
-                onChange={(val) => setNewSlide(prev => ({ ...prev, duration: val || 30 }))}
+                onChange={(val) => setNewSlide(prev => ({ ...prev, duration: val || 10 }))}
                 style={{ width: 80 }}
                 suffix="с"
               />
@@ -913,7 +913,7 @@ const StepSlides = () => {
                 <Slider
                   min={5}
                   max={120}
-                  value={editModal.slide.duration || 30}
+                  value={editModal.slide.duration || 10}
                   onChange={(val) => setEditModal(prev => ({
                     ...prev,
                     slide: { ...prev.slide, duration: val }
@@ -923,17 +923,17 @@ const StepSlides = () => {
                 <InputNumber
                   min={5}
                   max={300}
-                  value={editModal.slide.duration || 30}
+                  value={editModal.slide.duration || 10}
                   onChange={(val) => setEditModal(prev => ({
                     ...prev,
-                    slide: { ...prev.slide, duration: val || 30 }
+                    slide: { ...prev.slide, duration: val || 10 }
                   }))}
                   style={{ width: 80 }}
                   suffix="с"
                 />
               </div>
               <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
-                Суралцагч энэ слайдыг хамгийн багадаа {editModal.slide.duration || 30} секунд харсны дараа дараагийн слайд руу шилжих боломжтой
+                Суралцагч энэ слайдыг хамгийн багадаа {editModal.slide.duration || 10} секунд харсны дараа дараагийн слайд руу шилжих боломжтой
               </Text>
             </div>
           </div>

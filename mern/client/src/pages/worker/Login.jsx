@@ -71,7 +71,7 @@ const Login = () => {
               type="text"
               value={sapId}
               onChange={(e) => setSapId(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-lg"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-lg text-gray-900 placeholder-gray-400"
               placeholder="SAP дугаараа оруулна уу"
               autoFocus
             />

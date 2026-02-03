@@ -21,7 +21,7 @@ const slideSchema = new mongoose.Schema({
   imageUrl: { type: String },      // Legacy field
   pdfUrl: { type: String },        // Legacy field
   videoUrl: { type: String },
-  duration: { type: Number, default: 30 }, // Duration in seconds before next button is available
+  duration: { type: Number, default: 10 }, // Duration in seconds before next button is available
   layout: { type: String, default: 'default' },
   order: { type: Number, default: 0 }
 });
