@@ -52,7 +52,7 @@ router.get('/check/:sapId', async (req, res) => {
 });
 
 // Reset enrollment (for supervisor to re-enroll worker)
-router.post('/reset/:enrollmentId', adminAuth, async (req, res) => {
+router.post('/reset/:enrollmentId', async (req, res) => {
   try {
     const enrollment = await Enrollment.findById(req.params.enrollmentId)
       .populate({
@@ -94,7 +94,7 @@ router.post('/reset/:enrollmentId', adminAuth, async (req, res) => {
 });
 
 // Get feedback for a worker
-router.get('/feedback/:workerId', adminAuth, async (req, res) => {
+router.get('/feedback/:workerId', async (req, res) => {
   try {
     const feedback = await SupervisorFeedback.find({ worker: req.params.workerId })
       .populate('training', 'title')
@@ -108,7 +108,7 @@ router.get('/feedback/:workerId', adminAuth, async (req, res) => {
 });
 
 // Add feedback for a worker
-router.post('/feedback', adminAuth, async (req, res) => {
+router.post('/feedback', async (req, res) => {
   try {
     const { workerId, trainingId, comment, rating } = req.body;
 
@@ -134,7 +134,7 @@ router.post('/feedback', adminAuth, async (req, res) => {
 });
 
 // Delete feedback
-router.delete('/feedback/:feedbackId', adminAuth, async (req, res) => {
+router.delete('/feedback/:feedbackId', async (req, res) => {
   try {
     await SupervisorFeedback.findByIdAndDelete(req.params.feedbackId);
     res.json({ message: 'Сэтгэгдэл устгагдлаа' });
@@ -145,7 +145,7 @@ router.delete('/feedback/:feedbackId', adminAuth, async (req, res) => {
 });
 
 // Get feedback summary for a worker (like/dislike counts)
-router.get('/feedback-summary/:workerId', adminAuth, async (req, res) => {
+router.get('/feedback-summary/:workerId', async (req, res) => {
   try {
     const likes = await SupervisorFeedback.countDocuments({ 
       worker: req.params.workerId, 
