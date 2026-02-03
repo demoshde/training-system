@@ -733,9 +733,15 @@ const Training = () => {
                     objectFit: 'contain' 
                   }}
                   onError={(e) => {
-                    console.error('Image load error:', slide);
+                    // Only log in development
+                    if (process.env.NODE_ENV === 'development') {
+                      console.error('Image load error:', slide);
+                    }
                     e.target.style.display = 'none';
-                    e.target.parentElement.innerHTML = '<div style="padding: 48px; text-align: center; color: #ef4444;">⚠️ Зураг ачааллахад алдаа гарлаа</div>';
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'padding: 48px; text-align: center; color: #ef4444; font-size: 16px;';
+                    errorDiv.innerHTML = '⚠️ Зураг ачааллахад алдаа гарлаа';
+                    e.target.parentElement.appendChild(errorDiv);
                   }}
                 />
               </div>
