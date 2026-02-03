@@ -31,7 +31,9 @@ import {
 
 const { Title, Text, Paragraph } = Typography;
 
-const API_URL = 'http://localhost:5001';
+// Use production URL if in production, otherwise localhost
+const API_URL = import.meta.env.VITE_API_URL || 
+                (window.location.hostname === 'localhost' ? 'http://localhost:5001' : '');
 
 // Helper function to get full URL for uploaded files
 const getFileUrl = (url) => {
