@@ -378,83 +378,87 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Main Tab Navigation */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
+        {/* Main Tab Navigation - Grid Layout on Mobile */}
+        <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3 mb-6">
           <button
             onClick={() => setActiveTab('trainings')}
-            className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${
+            className={`flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-6 py-3 sm:py-3 rounded-xl font-medium transition text-sm sm:text-base ${
               activeTab === 'trainings'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
+                ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-300'
+                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
             }`}
           >
-            <AcademicCapIcon className="h-5 w-5" />
-            <span className="hidden sm:inline">Миний сургалтууд</span>
-            <span className="sm:hidden">Сургалт</span>
-            {incompleteCount > 0 && (
-              <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-                activeTab === 'trainings' ? 'bg-white/20' : 'bg-yellow-100 text-yellow-700'
-              }`}>
-                {incompleteCount}
-              </span>
-            )}
+            <AcademicCapIcon className="h-5 w-5 flex-shrink-0" />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1 min-w-0">
+              <span className="truncate">Сургалт</span>
+              {incompleteCount > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === 'trainings' ? 'bg-white/20 text-white' : 'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {incompleteCount}
+                </span>
+              )}
+            </div>
           </button>
           <button
             onClick={() => setActiveTab('news')}
-            className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${
+            className={`flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-6 py-3 sm:py-3 rounded-xl font-medium transition text-sm sm:text-base ${
               activeTab === 'news'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
+                ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-300'
+                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
             }`}
           >
-            <NewspaperIcon className="h-5 w-5" />
-            <span className="hidden sm:inline">Мэдээ мэдээлэл</span>
-            <span className="sm:hidden">Мэдээ</span>
-            {news.length > 0 && (
-              <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-                activeTab === 'news' ? 'bg-white/20' : 'bg-blue-100 text-blue-700'
-              }`}>
-                {news.length}
-              </span>
-            )}
+            <NewspaperIcon className="h-5 w-5 flex-shrink-0" />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1 min-w-0">
+              <span className="truncate">Мэдээ</span>
+              {news.length > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === 'news' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'
+                }`}>
+                  {news.length}
+                </span>
+              )}
+            </div>
           </button>
           <button
             onClick={() => setActiveTab('polls')}
-            className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${
+            className={`flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-6 py-3 sm:py-3 rounded-xl font-medium transition text-sm sm:text-base ${
               activeTab === 'polls'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
+                ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-300'
+                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
             }`}
           >
-            <ChatBubbleLeftRightIcon className="h-5 w-5" />
-            <span className="hidden sm:inline">Санал асуулга</span>
-            <span className="sm:hidden">Санал</span>
-            {polls.filter(p => !p.hasResponded).length > 0 && (
-              <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-                activeTab === 'polls' ? 'bg-white/20' : 'bg-purple-100 text-purple-700'
-              }`}>
-                {polls.filter(p => !p.hasResponded).length}
-              </span>
-            )}
+            <ChatBubbleLeftRightIcon className="h-5 w-5 flex-shrink-0" />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1 min-w-0">
+              <span className="truncate">Санал</span>
+              {polls.filter(p => !p.hasResponded).length > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === 'polls' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'
+                }`}>
+                  {polls.filter(p => !p.hasResponded).length}
+                </span>
+              )}
+            </div>
           </button>
           <button
             onClick={() => setActiveTab('regulations')}
-            className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${
+            className={`flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-6 py-3 sm:py-3 rounded-xl font-medium transition text-sm sm:text-base ${
               activeTab === 'regulations'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
+                ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-300'
+                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
             }`}
           >
-            <BookOpenIcon className="h-5 w-5" />
-            <span className="hidden sm:inline">Журамууд</span>
-            <span className="sm:hidden">Журам</span>
-            {regulations.length > 0 && (
-              <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-                activeTab === 'regulations' ? 'bg-white/20' : 'bg-green-100 text-green-700'
-              }`}>
-                {regulations.length}
-              </span>
-            )}
+            <BookOpenIcon className="h-5 w-5 flex-shrink-0" />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1 min-w-0">
+              <span className="truncate">Журам</span>
+              {regulations.length > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === 'regulations' ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700'
+                }`}>
+                  {regulations.length}
+                </span>
+              )}
+            </div>
           </button>
         </div>
 
@@ -462,37 +466,38 @@ const Dashboard = () => {
         {activeTab === 'trainings' && (
           <>
         {/* Trainings */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
+        <div className="flex flex-col gap-3 mb-4">
           <h3 className="text-xl font-bold text-gray-900">Миний сургалтууд</h3>
           
-          {/* Filter buttons */}
-          <div className="flex gap-2">
+          {/* Filter buttons - Grid on mobile */}
+          <div className="grid grid-cols-2 sm:flex gap-2">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                 filter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-100'
+                  ? 'bg-blue-600 text-white ring-2 ring-blue-300'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
               Бүгд ({enrollments.length})
             </button>
             <button
               onClick={() => setFilter('incomplete')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                 filter === 'incomplete'
-                  ? 'bg-yellow-500 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-100'
+                  ? 'bg-yellow-500 text-white ring-2 ring-yellow-300'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
-              Үзэх шаардлагатай ({incompleteCount})
+              <span className="hidden sm:inline">Үзэх шаардлагатай ({incompleteCount})</span>
+              <span className="sm:hidden">Үзээгүй ({incompleteCount})</span>
             </button>
             <button
               onClick={() => setFilter('completed')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                 filter === 'completed'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-100'
+                  ? 'bg-green-600 text-white ring-2 ring-green-300'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
               Үзсэн ({completedCount})
@@ -500,13 +505,14 @@ const Dashboard = () => {
             {expiredCount > 0 && (
               <button
                 onClick={() => setFilter('expired')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                   filter === 'expired'
-                    ? 'bg-red-600 text-white'
-                    : 'bg-white text-red-600 hover:bg-red-50'
+                    ? 'bg-red-600 text-white ring-2 ring-red-300'
+                    : 'bg-white text-red-600 hover:bg-red-50 border border-red-200'
                 }`}
               >
-                Хугацаа дууссан ({expiredCount})
+                <span className="hidden sm:inline">Хугацаа дууссан ({expiredCount})</span>
+                <span className="sm:hidden">Дууссан ({expiredCount})</span>
               </button>
             )}
           </div>
@@ -704,32 +710,38 @@ const Dashboard = () => {
             <div className="flex flex-wrap gap-2 mb-4">
               <button
                 onClick={() => setNewsCategory('')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                   newsCategory === ''
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-100'
+                    ? 'bg-gray-900 text-white ring-2 ring-gray-600'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                 }`}
               >
                 Бүгд
               </button>
               {CATEGORIES.map((cat) => {
                 const Icon = cat.icon;
+                const shortLabels = {
+                  'change': 'Өөрчлөлт',
+                  'accident': 'Осол',
+                  'improvement': 'Сайжруулалт'
+                };
                 return (
                   <button
                     key={cat.value}
                     onClick={() => setNewsCategory(newsCategory === cat.value ? '' : cat.value)}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                       newsCategory === cat.value
-                        ? cat.color === 'blue' ? 'bg-blue-600 text-white'
-                        : cat.color === 'red' ? 'bg-red-600 text-white'
-                        : 'bg-green-600 text-white'
-                        : cat.color === 'blue' ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                        : cat.color === 'red' ? 'bg-red-50 text-red-700 hover:bg-red-100'
-                        : 'bg-green-50 text-green-700 hover:bg-green-100'
+                        ? cat.color === 'blue' ? 'bg-blue-600 text-white ring-2 ring-blue-300'
+                        : cat.color === 'red' ? 'bg-red-600 text-white ring-2 ring-red-300'
+                        : 'bg-green-600 text-white ring-2 ring-green-300'
+                        : cat.color === 'blue' ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                        : cat.color === 'red' ? 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
+                        : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
-                    {cat.label}
+                    <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="hidden sm:inline">{cat.label}</span>
+                    <span className="sm:hidden">{shortLabels[cat.value] || cat.label}</span>
                   </button>
                 );
               })}
@@ -825,60 +837,79 @@ const Dashboard = () => {
                 <p className="text-gray-500">Одоогоор санал асуулга байхгүй байна</p>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="grid gap-3 sm:gap-4">
                 {polls.map((poll) => (
                   <div
                     key={poll._id}
-                    className={`bg-white rounded-xl shadow-sm p-6 transition hover:shadow-md ${
+                    className={`bg-white rounded-xl shadow-sm p-4 sm:p-6 transition hover:shadow-md ${
                       poll.hasResponded ? 'opacity-75' : ''
                     }`}
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="font-semibold text-gray-900">{poll.title}</h4>
-                          {poll.hasResponded ? (
-                            <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 flex items-center gap-1">
-                              <CheckCircleIcon className="h-3 w-3" />
-                              Хариулсан
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-700">
-                              Шинэ
-                            </span>
-                          )}
-                          {poll.isAnonymous && (
-                            <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
-                              Нэргүй
-                            </span>
+                    {/* Mobile: Stack vertically, Desktop: Side by side */}
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        {/* Title and badges */}
+                        <div className="mb-3">
+                          <h4 className="font-semibold text-gray-900 text-base sm:text-lg mb-2 break-words">
+                            {poll.title}
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {poll.hasResponded ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                                <CheckCircleIcon className="h-3.5 w-3.5" />
+                                Хариулсан
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
+                                Шинэ
+                              </span>
+                            )}
+                            {poll.isAnonymous && (
+                              <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                                Нэргүй
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Description */}
+                        {poll.description && (
+                          <p className="text-gray-600 text-sm mb-3 leading-relaxed break-words">
+                            {poll.description}
+                          </p>
+                        )}
+                        
+                        {/* Info */}
+                        <div className="text-xs sm:text-sm text-gray-500 space-y-1">
+                          <p>📝 {poll.questions?.length || 0} асуулт</p>
+                          {poll.endDate && (
+                            <p>
+                              ⏰ Дуусах: {new Date(poll.endDate).toLocaleDateString('mn-MN', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit'
+                              })}
+                            </p>
                           )}
                         </div>
-                        {poll.description && (
-                          <p className="text-gray-600 text-sm mb-2">{poll.description}</p>
-                        )}
-                        <p className="text-sm text-gray-500">
-                          {poll.questions?.length || 0} асуулт
-                          {poll.endDate && (
-                            <span className="ml-3">
-                              Дуусах: {new Date(poll.endDate).toLocaleDateString('mn-MN')}
-                            </span>
-                          )}
-                        </p>
                       </div>
                       
+                      {/* Action Button - Full width on mobile */}
                       {!poll.hasResponded && (
                         <button
                           onClick={() => openPollModal(poll)}
-                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-sm sm:text-base shadow-sm sm:flex-shrink-0"
                         >
+                          <ChatBubbleLeftRightIcon className="h-5 w-5" />
                           Хариулах
                         </button>
                       )}
                       {poll.hasResponded && (
                         <button
                           onClick={() => openPollModal(poll)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm sm:text-base shadow-sm sm:flex-shrink-0"
                         >
+                          <EyeIcon className="h-5 w-5" />
                           Харах
                         </button>
                       )}
@@ -901,7 +932,7 @@ const Dashboard = () => {
                 <p className="text-gray-500">Одоогоор журам байхгүй байна</p>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="grid gap-3 sm:gap-4">
                 {regulations.map((reg) => {
                   const categoryColors = {
                     safety: { bg: 'bg-red-100', text: 'text-red-700', label: 'Аюулгүй ажиллагаа' },
@@ -914,32 +945,49 @@ const Dashboard = () => {
                   return (
                     <div
                       key={reg._id}
-                      className="bg-white rounded-xl shadow-sm p-6 transition hover:shadow-md"
+                      className="bg-white rounded-xl shadow-sm p-4 sm:p-6 transition hover:shadow-md"
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className="px-2 py-1 text-sm font-bold bg-blue-600 text-white rounded">
+                      {/* Mobile: Stack vertically, Desktop: Side by side */}
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          {/* Regulation Number - More prominent */}
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className="inline-flex items-center justify-center px-3 py-1.5 text-base sm:text-lg font-bold bg-blue-600 text-white rounded-lg shadow-sm">
                               {reg.regulationNumber}
                             </span>
-                            <h4 className="font-semibold text-gray-900">{reg.title}</h4>
-                            <span className={`px-2 py-1 text-xs rounded-full ${cat.bg} ${cat.text}`}>
+                            <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${cat.bg} ${cat.text} whitespace-nowrap`}>
                               {cat.label}
                             </span>
                           </div>
+                          
+                          {/* Title */}
+                          <h4 className="font-semibold text-gray-900 text-base sm:text-lg mb-2 break-words">
+                            {reg.title}
+                          </h4>
+                          
+                          {/* Description */}
                           {reg.description && (
-                            <p className="text-gray-600 text-sm mb-2">{reg.description}</p>
+                            <p className="text-gray-600 text-sm mb-3 leading-relaxed break-words">
+                              {reg.description}
+                            </p>
                           )}
-                          <p className="text-sm text-gray-500">
-                            Нэмсэн: {new Date(reg.createdAt).toLocaleDateString('mn-MN')}
+                          
+                          {/* Date */}
+                          <p className="text-xs sm:text-sm text-gray-500">
+                            Нэмсэн: {new Date(reg.createdAt).toLocaleDateString('mn-MN', {
+                              year: 'numeric',
+                              month: '2-digit', 
+                              day: '2-digit'
+                            })}
                           </p>
                         </div>
                         
+                        {/* PDF Button - Full width on mobile */}
                         <a
                           href={reg.pdfUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-sm sm:text-base shadow-sm sm:flex-shrink-0 sm:self-start"
                         >
                           <DocumentIcon className="h-5 w-5" />
                           PDF харах
