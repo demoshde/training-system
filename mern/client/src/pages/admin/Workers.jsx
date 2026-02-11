@@ -5,15 +5,16 @@ import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import toast from 'react-hot-toast';
 import { 
   Table, Button, Modal, Form, Input, Select, Space, Tag, Progress, 
-  DatePicker, Typography, Popconfirm, Tooltip, Badge, Spin, theme
+  DatePicker, Typography, Popconfirm, Tooltip, Badge, Spin, theme, Alert, Upload
 } from 'antd';
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined,
   CheckCircleOutlined, ClockCircleOutlined, ExclamationCircleOutlined,
   DownOutlined, RightOutlined, BookOutlined, TrophyOutlined, 
-  SafetyCertificateOutlined, CalendarOutlined
+  SafetyCertificateOutlined, CalendarOutlined, UploadOutlined, InboxOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import * as XLSX from 'xlsx';
 
 const { Text } = Typography;
 
@@ -32,6 +33,11 @@ const Workers = () => {
   const [loadingEnrollments, setLoadingEnrollments] = useState({});
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+  const [bulkModalVisible, setBulkModalVisible] = useState(false);
+  const [bulkResults, setBulkResults] = useState(null);
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [excelFile, setExcelFile] = useState(null);
+  const [parsedData, setParsedData] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -147,6 +153,137 @@ const Workers = () => {
       return months > 0 ? `${months} сар` : 'Шинэ';
     }
     return `${years} жил`;
+  };
+
+  const handleFileUpload = (file) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        // Skip empty rows and header
+        const dataRows = jsonData.slice(1).filter(row => row.length > 0 && row[0]);
+        
+        setParsedData(dataRows);
+        setExcelFile(file);
+        toast.success(`${dataRows.length} мөр уншигдлаа`);
+      } catch (error) {
+        toast.error('Excel файл уншихад алдаа гарлаа');
+        console.error(error);
+      }
+    };
+    
+    reader.readAsArrayBuffer(file);
+    return false; // Prevent auto upload
+  };
+
+  const handleBulkImport = async () => {
+    if (parsedData.length === 0) {
+      toast.error('Excel файл оруулна уу');
+      return;
+    }
+
+    setBulkImporting(true);
+    setBulkResults(null);
+
+    try {
+      const results = {
+        success: [],
+        failed: [],
+        skipped: []
+      };
+
+      for (const line of parsedData) {
+        const parts = line.map(cell => cell ? String(cell).trim() : '');
+        
+        if (parts.length < 8) {
+          results.failed.push({ line: parts.join(' '), reason: 'Дутуу мэдээлэл' });
+          continue;
+        }
+
+        const [sapId, companyName, lastName, firstName, position, helmetColor, birthDate, employmentDate] = parts;
+        
+        // Find company by name
+        const company = companies.find(c => c.name === companyName);
+        if (!company) {
+          results.failed.push({ sapId, reason: `Компани олдсонгүй: ${companyName}` });
+          continue;
+        }
+
+        // Check if worker already exists
+        const existingWorker = workers.find(w => w.sapId === String(sapId));
+        if (existingWorker) {
+          results.skipped.push({ sapId, name: `${lastName} ${firstName}` });
+          continue;
+        }
+
+        // Parse dates - handle both Excel serial dates and text dates
+        const parseDate = (dateValue) => {
+          if (!dateValue) return null;
+          
+          // If it's an Excel serial date (number)
+          if (typeof dateValue === 'number') {
+            const excelDate = XLSX.SSF.parse_date_code(dateValue);
+            return dayjs(`${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`).format('YYYY-MM-DD');
+          }
+          
+          // If it's a text date (MM/DD/YYYY)
+          const dateStr = String(dateValue);
+          if (dateStr.includes('/')) {
+            const [month, day, year] = dateStr.split('/');
+            return dayjs(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`).format('YYYY-MM-DD');
+          }
+          
+          return null;
+        };
+
+        const workerData = {
+          sapId: String(sapId),
+          firstName,
+          lastName,
+          company: company._id,
+          position,
+          helmetColor,
+          birthDate: parseDate(birthDate),
+          employmentDate: parseDate(employmentDate)
+        };
+
+        try {
+          await adminApi.post('/workers', workerData);
+          results.success.push({ sapId, name: `${lastName} ${firstName}` });
+        } catch (error) {
+          results.failed.push({ 
+            sapId, 
+            reason: error.response?.data?.message || 'Нэмэхэд алдаа гарлаа' 
+          });
+        }
+      }
+
+      setBulkResults(results);
+      
+      if (results.success.length > 0) {
+        toast.success(`${results.success.length} ажилтан амжилттай нэмэгдлээ`);
+        fetchData();
+      }
+      
+      if (results.failed.length > 0) {
+        toast.error(`${results.failed.length} ажилтан нэмэгдсэнгүй`);
+      }
+
+      if (results.skipped.length > 0) {
+        toast.info(`${results.skipped.length} ажилтан аль хэдийн бүртгэгдсэн`);
+      }
+
+    } catch (error) {
+      toast.error('Импорт хийхэд алдаа гарлаа');
+    } finally {
+      setBulkImporting(false);
+    }
   };
 
   const filteredWorkers = workers.filter(worker => {
@@ -516,6 +653,18 @@ const Workers = () => {
           </Select>
         )}
         <div style={{ flex: 1 }} />
+        <Button 
+          icon={<UploadOutlined />} 
+          onClick={() => {
+            setBulkModalVisible(true);
+            setBulkResults(null);
+            setExcelFile(null);
+            setParsedData([]);
+          }}
+          style={{ marginRight: 8 }}
+        >
+          Олноор ажилтан нэмэх
+        </Button>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
           Ажилтан нэмэх
         </Button>
@@ -641,6 +790,150 @@ const Workers = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Bulk Import Modal */}
+      <Modal
+        title="Олноор ажилтан нэмэх"
+        open={bulkModalVisible}
+        onCancel={() => {
+          setBulkModalVisible(false);
+          setBulkResults(null);
+          setExcelFile(null);
+          setParsedData([]);
+        }}
+        width={800}
+        footer={[
+          <Button 
+            key="cancel" 
+            onClick={() => {
+              setBulkModalVisible(false);
+              setBulkResults(null);
+              setExcelFile(null);
+              setParsedData([]);
+            }}
+          >
+            Хаах
+          </Button>,
+          <Button 
+            key="import" 
+            type="primary" 
+            onClick={handleBulkImport}
+            loading={bulkImporting}
+            disabled={parsedData.length === 0}
+          >
+            Импорт хийх
+          </Button>
+        ]}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Alert
+            message="Зааварчилгаа"
+            description={
+              <div>
+                <p><strong>Excel файл:</strong> .xlsx эсвэл .xls формат</p>
+                <p><strong>Баганын дараалал:</strong></p>
+                <div style={{ 
+                  background: '#f5f5f5', 
+                  padding: 8, 
+                  borderRadius: 4, 
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  marginTop: 8
+                }}>
+                  1. SAP ID | 2. Компани | 3. Овог | 4. Нэр | 5. Албан тушаал | 6. Малгайн өнгө | 7. Төрсөн огноо | 8. Ажилд орсон огноо
+                </div>
+                <p style={{ marginTop: 8, marginBottom: 0 }}>
+                  <Text type="secondary">• Эхний мөр нь толгой мөр (header) байна</Text><br/>
+                  <Text type="secondary">• Аль хэдийн бүртгэгдсэн SAP ID-тай ажилтан алгасагдана</Text><br/>
+                  <Text type="secondary">• Огноо автоматаар хөрвүүлэгдэнэ</Text>
+                </p>
+              </div>
+            }
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+
+          <Upload.Dragger
+            accept=".xlsx,.xls"
+            beforeUpload={handleFileUpload}
+            onRemove={() => {
+              setExcelFile(null);
+              setParsedData([]);
+            }}
+            maxCount={1}
+            fileList={excelFile ? [excelFile] : []}
+          >
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">Excel файлаа энд дарж эсвэл чирж оруулна уу</p>
+            <p className="ant-upload-hint">
+              .xlsx эсвэл .xls файл дэмжигдэнэ
+            </p>
+          </Upload.Dragger>
+
+          {parsedData.length > 0 && (
+            <Alert
+              message={`${parsedData.length} мөр уншигдлаа`}
+              type="success"
+              showIcon
+              style={{ marginTop: 16 }}
+            />
+          )}
+        </div>
+
+        {bulkResults && (
+          <div style={{ marginTop: 16 }}>
+            {bulkResults.success.length > 0 && (
+              <Alert
+                message={`Амжилттай: ${bulkResults.success.length} ажилтан`}
+                description={
+                  <div style={{ maxHeight: 100, overflow: 'auto' }}>
+                    {bulkResults.success.map((w, i) => (
+                      <div key={i}>• {w.sapId} - {w.name}</div>
+                    ))}
+                  </div>
+                }
+                type="success"
+                showIcon
+                style={{ marginBottom: 8 }}
+              />
+            )}
+
+            {bulkResults.skipped.length > 0 && (
+              <Alert
+                message={`Алгассан: ${bulkResults.skipped.length} ажилтан (аль хэдийн бүртгэгдсэн)`}
+                description={
+                  <div style={{ maxHeight: 100, overflow: 'auto' }}>
+                    {bulkResults.skipped.map((w, i) => (
+                      <div key={i}>• {w.sapId} - {w.name}</div>
+                    ))}
+                  </div>
+                }
+                type="warning"
+                showIcon
+                style={{ marginBottom: 8 }}
+              />
+            )}
+
+            {bulkResults.failed.length > 0 && (
+              <Alert
+                message={`Амжилтгүй: ${bulkResults.failed.length} ажилтан`}
+                description={
+                  <div style={{ maxHeight: 100, overflow: 'auto' }}>
+                    {bulkResults.failed.map((w, i) => (
+                      <div key={i}>• {w.sapId || 'Тодорхойгүй'} - {w.reason}</div>
+                    ))}
+                  </div>
+                }
+                type="error"
+                showIcon
+              />
+            )}
+          </div>
+        )}
       </Modal>
     </AdminLayout>
   );
