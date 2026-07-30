@@ -9,6 +9,9 @@ const trialSchema = new mongoose.Schema({
 const pvtTestSchema = new mongoose.Schema({
   driver:  { type: mongoose.Schema.Types.ObjectId, ref: 'Worker', required: true },
   company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company',   required: true },
+  // Denormalized for reliable display even if worker is deleted
+  driverName: { type: String, default: '' },
+  driverSap:  { type: String, default: '' },
 
   stage1: {
     shownSequence:   { type: String },

@@ -175,34 +175,36 @@ export default function PVTTestArena() {
     const valid = finalTrials.filter(t => !t.isFalseStart && t.rt > 0).map(t => t.rt);
     const meanRT   = valid.length ? Math.round(valid.reduce((a,b)=>a+b,0)/valid.length) : 999;
     const medianRT = valid.length ? Math.round(median(valid)) : 999;
-    const lapses   = finalTrials.filter(t => t.isLapse).length;
+    const lapses      = finalTrials.filter(t => t.isLapse).length;
     const falseStarts = finalTrials.filter(t => t.isFalseStart).length;
     const stats = { meanRT, medianRT, lapses, falseStarts };
     setPvtStats(stats);
     const status = computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts);
     setFinalStatus(status);
     setStage('final_results');
+    // Auto-submit — pass all values directly to avoid stale closure issues
+    doSubmit(s1Digit, s1Input, s1Pass, s2Digit, s2Input, s2Pass, finalTrials, stats);
   }
 
-  // ── Submit to backend ─────────────────────────────────────────────────────
-  async function submitResults() {
+  // ── Submit to backend (called automatically) ──────────────────────────────
+  async function doSubmit(sd1, si1, p1, sd2, si2, p2, finalTrials, stats) {
     setSubmitting(true); setSubmitError('');
     try {
       await pvtApi.post('/tests', {
-        stage1: { shownSequence: s1Digit, enteredSequence: s1Input, passed: s1Pass },
-        stage2: { shownNumber: s2Digit,   enteredSequence: s2Input, passed: s2Pass },
+        stage1: { shownSequence: sd1, enteredSequence: si1, passed: p1 },
+        stage2: { shownNumber:   sd2, enteredSequence: si2, passed: p2 },
         stage3: {
-          trials: trials.map(t => ({
+          trials: finalTrials.map(t => ({
             reactionTime: t.rt,
             isFalseStart: t.isFalseStart,
-            isLapse: t.isLapse
+            isLapse:      t.isLapse
           })),
-          ...pvtStats
+          ...stats
         }
       });
       setStage('submitted');
     } catch {
-      setSubmitError('Failed to submit results. Please inform your moderator.');
+      setSubmitError('Үр дүн илгээхэд алдаа гарлаа. Та дахин оролдоно уу.');
     } finally {
       setSubmitting(false);
     }
@@ -519,15 +521,25 @@ export default function PVTTestArena() {
             )}
 
             {stage === 'final_results' && (
-              <>
-                {submitError && (
-                  <p className="text-red-400 text-sm text-center">{submitError}</p>
+              <div className="text-center">
+                {submitting ? (
+                  <div className="flex items-center justify-center gap-2 text-gray-400">
+                    <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                    <span className="text-sm">Submitting results…</span>
+                  </div>
+                ) : submitError && (
+                  <div className="space-y-3">
+                    <p className="text-red-400 text-sm">{submitError}</p>
+                    <button onClick={() => doSubmit(s1Digit, s1Input, s1Pass, s2Digit, s2Input, s2Pass, trials, pvtStats)}
+                      className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-sm transition-colors">
+                      Retry Submit
+                    </button>
+                  </div>
                 )}
-                <button onClick={submitResults} disabled={submitting}
-                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 text-white font-bold rounded-xl transition-colors">
-                  {submitting ? 'Submitting…' : 'Submit Results & Complete'}
-                </button>
-              </>
+              </div>
             )}
 
             {stage === 'submitted' && (

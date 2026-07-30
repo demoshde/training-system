@@ -144,9 +144,11 @@ export default function PVTManagement() {
                 <div key={t._id} className="flex items-center justify-between px-5 py-3">
                   <div>
                     <p className="text-gray-800 text-sm font-medium">
-                      {t.driver?.firstName} {t.driver?.lastName}
+                      {t.driver?.firstName
+                        ? `${t.driver.firstName} ${t.driver.lastName}`
+                        : t.driverName || '—'}
                     </p>
-                    <p className="text-gray-400 text-xs">{t.driver?.sapId} · {t.driver?.logisticsTrack}</p>
+                    <p className="text-gray-400 text-xs">{t.driver?.sapId || t.driverSap}</p>
                   </div>
                   <div className="text-right">
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${STATUS_BADGE[t.overallStatus]}`}>
@@ -194,10 +196,14 @@ export default function PVTManagement() {
                   <tr key={t._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{new Date(t.testedAt).toLocaleString()}</td>
                     <td className="px-4 py-3">
-                      <p className="text-gray-800 font-medium">{t.driver?.firstName} {t.driver?.lastName}</p>
-                      <p className="text-gray-400 text-xs">{t.driver?.sapId}</p>
+                      <p className="text-gray-800 font-medium">
+                        {t.driver?.firstName
+                          ? `${t.driver.firstName} ${t.driver.lastName}`
+                          : t.driverName || '—'}
+                      </p>
+                      <p className="text-gray-400 text-xs">{t.driver?.sapId || t.driverSap}</p>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{t.driver?.logisticsTrack}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{t.driver?.logisticsTrack || '—'}</td>
                     <td className={`px-4 py-3 font-bold text-xs ${t.stage1?.passed?'text-green-600':'text-red-500'}`}>{t.stage1?.passed?'P':'F'}</td>
                     <td className={`px-4 py-3 font-bold text-xs ${t.stage2?.passed?'text-green-600':'text-red-500'}`}>{t.stage2?.passed?'P':'F'}</td>
                     <td className="px-4 py-3 font-mono text-gray-800 text-xs">{t.stage3?.meanRT?.toFixed(0)}ms</td>

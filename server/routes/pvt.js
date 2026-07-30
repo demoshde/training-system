@@ -22,6 +22,8 @@ router.post('/tests', workerAuth, async (req, res) => {
     const test = await PVTTest.create({
       driver:  req.worker._id,
       company: req.worker.company._id,
+      driverName: `${req.worker.firstName} ${req.worker.lastName}`,
+      driverSap:  req.worker.sapId,
       stage1, stage2, stage3, overallStatus
     });
 
