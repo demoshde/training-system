@@ -44,6 +44,7 @@ app.use('/api/news', require('./routes/news')); // Public access for workers
 app.use('/api/regulations', require('./routes/regulations')); // For workers
 app.use('/api/worker', require('./routes/worker'));
 app.use('/api/supervisor', require('./routes/supervisor'));
+app.use('/api/pvt', require('./routes/pvt'));
 
 // Error handling
 app.use((err, req, res, next) => {

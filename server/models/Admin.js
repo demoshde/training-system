@@ -8,6 +8,7 @@ const adminSchema = new mongoose.Schema({
   email: { type: String },
   role: { type: String, enum: ['super_admin', 'company_admin'], default: 'company_admin' },
   company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
+  pvtSapCode: { type: String, default: null, sparse: true },
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 
