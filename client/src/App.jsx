@@ -1,15 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AdminAuthProvider } from './contexts/AdminAuthContext';
-import { PVTProvider, usePVT } from './contexts/PVTContext';
 import WorkerProtectedRoute from './components/WorkerProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 
 // PVT pages
-import PVTGateway from './pages/pvt/PVTGateway';
 import PVTTestArena from './pages/pvt/PVTTestArena';
-import PVTModeratorDashboard from './pages/pvt/PVTModeratorDashboard';
-import PVTSuperAdmin from './pages/pvt/PVTSuperAdmin';
+import PVTManagement from './pages/admin/PVTManagement';
 
 // Worker pages
 import WorkerLogin from './pages/worker/Login';
@@ -35,13 +32,6 @@ import News from './pages/admin/News';
 import Polls from './pages/admin/Polls';
 import Regulations from './pages/admin/Regulations';
 
-// PVT protected route helper
-function PVTRoute({ roles, element }) {
-  const { pvtUser } = usePVT();
-  if (!pvtUser || !roles.includes(pvtUser.role)) return <Navigate to="/pvt" replace />;
-  return element;
-}
-
 function App() {
   return (
     <AuthProvider>
@@ -49,10 +39,20 @@ function App() {
         {/* PVT portal routes are self-contained under /pvt */}
         <Routes>
           {/* ── PVT Portal ── */}
-          <Route path="/pvt" element={<PVTProvider><PVTGateway /></PVTProvider>} />
-          <Route path="/pvt/test" element={<PVTProvider><PVTRoute roles={['pvt_driver']} element={<PVTTestArena />} /></PVTProvider>} />
-          <Route path="/pvt/moderator" element={<PVTProvider><PVTRoute roles={['pvt_moderator','pvt_super_admin']} element={<PVTModeratorDashboard />} /></PVTProvider>} />
-          <Route path="/pvt/super-admin" element={<PVTProvider><PVTRoute roles={['pvt_super_admin']} element={<PVTSuperAdmin />} /></PVTProvider>} />
+          {/* Gateway redirects to login (legacy URL support) */}
+          <Route path="/pvt" element={<Navigate to="/login" replace />} />
+          {/* PVT test: worker logs in normally then takes the test */}
+          <Route path="/pvt/test" element={
+            <WorkerProtectedRoute>
+              <PVTTestArena />
+            </WorkerProtectedRoute>
+          } />
+
+          <Route path="/admin/pvt" element={
+            <AdminProtectedRoute>
+              <PVTManagement />
+            </AdminProtectedRoute>
+          } />
 
           {/* Supervisor route (standalone, PIN protected) */}
           <Route path="/supervisor" element={<SupervisorCheck />} />

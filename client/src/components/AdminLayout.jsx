@@ -19,7 +19,8 @@ import {
   SunOutlined,
   MoonOutlined,
   UnorderedListOutlined,
-  FilePdfOutlined
+  FilePdfOutlined,
+  SafetyCertificateOutlined
 } from '@ant-design/icons';
 import { useState } from 'react';
 
@@ -44,6 +45,7 @@ const AdminLayout = ({ children, title }) => {
     { key: '/admin/enrollments', icon: <FileTextOutlined />, label: 'Бүртгэл' },
     { key: '/admin/news', icon: <NotificationOutlined />, label: 'Мэдээ мэдээлэл' },
     { key: '/admin/polls', icon: <CommentOutlined />, label: 'Санал асуулга' },
+    { key: '/admin/pvt', icon: <SafetyCertificateOutlined />, label: 'PVT Шалгалт' },
     ...(admin?.role === 'super_admin' ? [{ key: '/admin/regulations', icon: <FilePdfOutlined />, label: 'Журамууд' }] : []),
     ...(admin?.role === 'super_admin' ? [{ key: '/admin/admins', icon: <SettingOutlined />, label: 'Админ' }] : []),
   ];

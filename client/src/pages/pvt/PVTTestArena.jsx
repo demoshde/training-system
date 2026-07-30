@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePVT } from '../../contexts/PVTContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { pvtApi } from '../../api/pvt';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -32,7 +32,11 @@ const statusConfig = {
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function PVTTestArena() {
   const navigate = useNavigate();
-  const { pvtUser, logout } = usePVT();
+  const { worker, logout } = useAuth();
+
+  // Derive display names from existing worker object
+  const driverName  = worker ? `${worker.firstName} ${worker.lastName}` : '';
+  const companyName = worker?.company?.name || '';
 
   // stage: 'welcome' | 'stage1_show' | 'stage1_input' | 'stage1_result'
   //      | 'stage2_show' | 'stage2_input' | 'stage2_result'
@@ -66,10 +70,10 @@ export default function PVTTestArena() {
   const startRef   = useRef(null); // performance.now() when green shows
   const cdRef      = useRef(null);
 
-  // Guard: redirect if no user
+  // Guard: redirect if not logged in as worker
   useEffect(() => {
-    if (!pvtUser || pvtUser.role !== 'pvt_driver') navigate('/pvt');
-  }, [pvtUser, navigate]);
+    if (!worker) navigate('/login');
+  }, [worker, navigate]);
 
   // Cleanup on unmount
   useEffect(() => () => {
@@ -228,8 +232,8 @@ export default function PVTTestArena() {
           <span className="text-white font-semibold text-sm">FleetGuard PVT</span>
         </div>
         <div className="text-right">
-          <p className="text-white text-sm font-medium">{pvtUser?.driverName}</p>
-          <p className="text-emerald-400 text-xs">{pvtUser?.companyName}</p>
+        <p className="text-white text-sm font-medium">{driverName}</p>
+              <p className="text-emerald-400 text-xs">{companyName}</p>
         </div>
       </div>
 
@@ -468,7 +472,7 @@ export default function PVTTestArena() {
             <div className={`rounded-2xl border p-6 text-center ${sc.bg} ${sc.border}`}>
               <p className={`text-4xl font-black ${sc.color}`}>{sc.label}</p>
               <p className="text-gray-400 text-sm mt-1">
-                {pvtUser?.driverName} &nbsp;|&nbsp; {pvtUser?.companyName}
+                {driverName} &nbsp;|&nbsp; {companyName}
               </p>
             </div>
 
@@ -529,7 +533,7 @@ export default function PVTTestArena() {
             {stage === 'submitted' && (
               <div className="text-center">
                 <p className="text-emerald-400 font-semibold mb-4">✓ Results submitted successfully.</p>
-                <button onClick={() => { logout(); navigate('/pvt'); }}
+                <button onClick={() => { logout(); navigate('/'); }}
                   className="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-xl transition-colors">
                   Exit Portal
                 </button>

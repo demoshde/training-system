@@ -7,7 +7,7 @@ const trialSchema = new mongoose.Schema({
 }, { _id: false });
 
 const pvtTestSchema = new mongoose.Schema({
-  driver:  { type: mongoose.Schema.Types.ObjectId, ref: 'PVTDriver', required: true },
+  driver:  { type: mongoose.Schema.Types.ObjectId, ref: 'Worker', required: true },
   company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company',   required: true },
 
   stage1: {

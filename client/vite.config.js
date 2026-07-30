@@ -11,7 +11,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:5001',
+        target: process.env.VITE_API_URL || 'http://localhost:3001',
         changeOrigin: true,
         timeout: 120000, // 2 minutes timeout for large file uploads
         configure: (proxy, options) => {
@@ -22,7 +22,7 @@ export default defineConfig({
         }
       },
       '/uploads': {
-        target: process.env.VITE_API_URL || 'http://localhost:5001',
+        target: process.env.VITE_API_URL || 'http://localhost:3001',
         changeOrigin: true
       }
     }

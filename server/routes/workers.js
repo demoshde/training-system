@@ -97,7 +97,8 @@ router.get('/:id', adminAuth, async (req, res) => {
 // Create worker
 router.post('/', adminAuth, async (req, res) => {
   try {
-    const { sapId, firstName, lastName, company, position, birthDate, employmentDate, helmetColor } = req.body;
+    const { sapId, firstName, lastName, company, position, birthDate, employmentDate, helmetColor,
+            shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity } = req.body;
     
     // Check if SAP ID already exists
     const existingWorker = await Worker.findOne({ sapId });
@@ -109,14 +110,9 @@ router.post('/', adminAuth, async (req, res) => {
     const workerCompany = req.admin.role === 'super_admin' ? company : req.admin.company._id;
 
     const worker = await Worker.create({
-      sapId,
-      firstName,
-      lastName,
-      company: workerCompany,
-      position,
-      birthDate: birthDate || undefined,
-      employmentDate: employmentDate || undefined,
-      helmetColor
+      sapId, firstName, lastName, company: workerCompany,
+      position, birthDate: birthDate || undefined, employmentDate: employmentDate || undefined,
+      helmetColor, shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity
     });
 
     const populatedWorker = await Worker.findById(worker._id)
@@ -138,7 +134,8 @@ router.post('/', adminAuth, async (req, res) => {
 // Update worker
 router.put('/:id', adminAuth, async (req, res) => {
   try {
-    const { sapId, firstName, lastName, company, position, birthDate, employmentDate, helmetColor, isActive } = req.body;
+    const { sapId, firstName, lastName, company, position, birthDate, employmentDate, helmetColor, isActive,
+            shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity } = req.body;
     
     // Check SAP ID uniqueness
     const existingWorker = await Worker.findOne({ sapId, _id: { $ne: req.params.id } });
@@ -148,17 +145,9 @@ router.put('/:id', adminAuth, async (req, res) => {
 
     const worker = await Worker.findByIdAndUpdate(
       req.params.id,
-      { 
-        sapId, 
-        firstName, 
-        lastName, 
-        company, 
-        position, 
-        birthDate: birthDate || undefined,
-        employmentDate: employmentDate || undefined,
-        helmetColor, 
-        isActive 
-      },
+      { sapId, firstName, lastName, company, position,
+        birthDate: birthDate || undefined, employmentDate: employmentDate || undefined,
+        helmetColor, isActive, shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity },
       { new: true }
     ).populate('company');
     

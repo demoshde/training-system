@@ -378,6 +378,23 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* PVT Fitness Test Card */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 mb-5 flex items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <span className="text-2xl">🧠</span>
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-gray-900">PVT Когнитив Шалгалт</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Ажлын эрүүл мэндийн 3 үе шаттай шалгалт — Санах ой · Эрэмбэлэлт · Хариу урвалын хугацаа</p>
+            </div>
+          </div>
+          <a href="/pvt/test"
+            className="flex-shrink-0 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors whitespace-nowrap">
+            Шалгалт өгөх →
+          </a>
+        </div>
+
         {/* Main Tab Navigation - Grid Layout on Mobile */}
         <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3 mb-6">
           <button

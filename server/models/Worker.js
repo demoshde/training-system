@@ -9,7 +9,13 @@ const workerSchema = new mongoose.Schema({
   birthDate: { type: Date },
   employmentDate: { type: Date },
   helmetColor: { type: String, enum: ['Ногоон', 'Цагаан'] },
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  // PVT Fleet fields
+  shiftType:         { type: String, enum: ['Day', 'Night'], default: 'Day' },
+  logisticsTrack:    { type: String, enum: ['Short Haul Driver', 'Convoy Driver'], default: 'Short Haul Driver' },
+  convoyConfig:      { type: String, default: '' },
+  accommodationUnit: { type: String, default: '' },
+  roomCapacity:      { type: String, enum: ['Single', '2-person', '3+ shared'], default: 'Single' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Worker', workerSchema);
