@@ -202,6 +202,7 @@ const Admins = () => {
       <Modal
         title={editingAdmin ? 'Админ засах' : 'Админ нэмэх'}
         open={modalVisible}
+        forceRender
         onCancel={() => {
           setModalVisible(false);
           form.resetFields();

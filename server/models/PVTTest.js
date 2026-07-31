@@ -12,6 +12,7 @@ const pvtTestSchema = new mongoose.Schema({
   // Denormalized for reliable display even if worker is deleted
   driverName: { type: String, default: '' },
   driverSap:  { type: String, default: '' },
+  testShift:  { type: String, default: '' },  // shift at time of test
 
   stage1: {
     shownSequence:   { type: String },

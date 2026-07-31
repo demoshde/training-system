@@ -45,7 +45,7 @@ const AdminLayout = ({ children, title }) => {
     { key: '/admin/enrollments', icon: <FileTextOutlined />, label: 'Бүртгэл' },
     { key: '/admin/news', icon: <NotificationOutlined />, label: 'Мэдээ мэдээлэл' },
     { key: '/admin/polls', icon: <CommentOutlined />, label: 'Санал асуулга' },
-    { key: '/admin/pvt', icon: <SafetyCertificateOutlined />, label: 'PVT Шалгалт' },
+    { key: '/admin/pvt', icon: <SafetyCertificateOutlined />, label: 'PVT Тайлан' },
     ...(admin?.role === 'super_admin' ? [{ key: '/admin/regulations', icon: <FilePdfOutlined />, label: 'Журамууд' }] : []),
     ...(admin?.role === 'super_admin' ? [{ key: '/admin/admins', icon: <SettingOutlined />, label: 'Админ' }] : []),
   ];

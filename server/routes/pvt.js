@@ -15,33 +15,40 @@ function computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts) {
 // ── POST /api/pvt/tests  — worker submits their own test ─────────────────────
 router.post('/tests', workerAuth, async (req, res) => {
   try {
-    const { stage1, stage2, stage3 } = req.body;
+    const { stage1, stage2, stage3, testShift } = req.body;
+
+    if (!stage1 || !stage2 || !stage3) {
+      return res.status(400).json({ message: 'Missing stage data' });
+    }
+
     const { meanRT, lapses, falseStarts } = stage3;
     const overallStatus = computeStatus(stage1.passed, stage2.passed, meanRT, lapses, falseStarts);
+    const companyId = req.worker.company?._id ?? req.worker.company;
+    if (!companyId) return res.status(400).json({ message: 'Worker has no company assigned.' });
 
     const test = await PVTTest.create({
-      driver:  req.worker._id,
-      company: req.worker.company._id,
+      driver:     req.worker._id,
+      company:    companyId,
       driverName: `${req.worker.firstName} ${req.worker.lastName}`,
       driverSap:  req.worker.sapId,
+      testShift:  testShift || req.worker.shiftType || '',
       stage1, stage2, stage3, overallStatus
     });
 
     if (overallStatus === 'HIGH_RISK') {
       await PVTAlert.create({
-        company:    req.worker.company._id,
+        company:    companyId,
         driver:     req.worker._id,
         test:       test._id,
         driverName: `${req.worker.firstName} ${req.worker.lastName}`,
         driverSap:  req.worker.sapId
       });
-      await PVTTest.findByIdAndUpdate(test._id, { alertDispatched: true });
     }
 
     res.status(201).json({ testId: test._id, overallStatus });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('PVT test submission error:', err.message, err.stack);
+    res.status(500).json({ message: err.message || 'Server error' });
   }
 });
 
@@ -57,13 +64,21 @@ router.get('/tests/my', workerAuth, async (req, res) => {
 // ── GET /api/pvt/tests  — admin sees company (or global) history ──────────────
 router.get('/tests', adminAuth, async (req, res) => {
   try {
-    const filter = req.admin.role === 'super_admin' ? {} : { company: req.admin.company._id };
+    let filter = {};
+    if (req.admin.role !== 'super_admin') {
+      const cid = req.admin.company?._id || req.admin.company;
+      if (!cid) return res.status(400).json({ message: 'Admin компанигуй байна' });
+      filter = { company: cid };
+    }
     const tests = await PVTTest.find(filter)
-      .populate('driver', 'firstName lastName sapId logisticsTrack shiftType')
+      .populate('driver', 'firstName lastName sapId shiftType')
       .populate('company', 'name')
-      .sort({ testedAt: -1 }).limit(200);
+      .sort({ testedAt: -1 }).limit(500);
     res.json(tests);
-  } catch { res.status(500).json({ message: 'Server error' }); }
+  } catch (err) {
+    console.error('PVT tests fetch error:', err.message);
+    res.status(500).json({ message: err.message || 'Server error' });
+  }
 });
 
 // ── GET /api/pvt/alerts  — admin sees unread alerts for their company ─────────

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
-import { Steps, Button, message, Card, ConfigProvider, Spin, Space, theme } from 'antd';
+import { Steps, Button, Card, ConfigProvider, Spin, Space, theme } from 'antd';
 import { ArrowLeftOutlined, LoadingOutlined } from '@ant-design/icons';
 import AdminLayout from '../../components/AdminLayout';
 import { adminApi } from '../../api';
@@ -119,7 +119,7 @@ const TrainingWizard = () => {
     if (isValid) {
       setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
     } else {
-      message.error('Шаардлагатай талбаруудыг бөглөнө үү');
+      toast.error('Шаардлагатай талбаруудыг бөглөнө үү');
     }
   };
   
@@ -137,7 +137,7 @@ const TrainingWizard = () => {
       for (let i = currentStep; i < step; i++) {
         const isValid = await validateStep(i);
         if (!isValid) {
-          message.error('Өмнөх алхмуудыг дуусгана уу');
+          toast.error('Өмнөх алхмуудыг дуусгана уу');
           return;
         }
       }

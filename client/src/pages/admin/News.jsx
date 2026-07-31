@@ -298,6 +298,7 @@ const News = () => {
       <Modal
         title={editingNews ? 'Мэдээ засах' : 'Мэдээ нэмэх'}
         open={modalVisible}
+        forceRender
         onCancel={() => {
           setModalVisible(false);
           form.resetFields();

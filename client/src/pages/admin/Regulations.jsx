@@ -280,6 +280,7 @@ const Regulations = () => {
         <Modal
           title={editingRegulation ? 'Журам засах' : 'Журам нэмэх'}
           open={modalVisible}
+          forceRender
           onCancel={() => {
             setModalVisible(false);
             form.resetFields();

@@ -517,6 +517,7 @@ const Polls = () => {
       {/* Create/Edit Modal */}
       <Modal
         open={showModal}
+        forceRender
         onCancel={() => setShowModal(false)}
         title={selectedPoll ? 'Санал асуулга засах' : 'Шинэ санал асуулга'}
         width={800}

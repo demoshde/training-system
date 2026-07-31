@@ -146,6 +146,7 @@ const Companies = () => {
       <Modal
         title={editingCompany ? 'Компани засах' : 'Компани нэмэх'}
         open={modalVisible}
+        forceRender
         onCancel={() => {
           setModalVisible(false);
           form.resetFields();

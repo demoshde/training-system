@@ -70,11 +70,9 @@ const Workers = () => {
         birthDate: worker.birthDate ? dayjs(worker.birthDate) : null,
         employmentDate: worker.employmentDate ? dayjs(worker.employmentDate) : null,
         helmetColor: worker.helmetColor || '',
-        shiftType: worker.shiftType || 'Day',
-        logisticsTrack: worker.logisticsTrack || 'Short Haul Driver',
-        convoyConfig: worker.convoyConfig || '',
+        shiftMain: worker.shiftType?.startsWith('Цуваа-') ? 'Цуваа' : (worker.shiftType || 'Өдөр'),
+        convoyNum: worker.shiftType?.startsWith('Цуваа-') ? parseInt(worker.shiftType.replace('Цуваа-','')) : undefined,
         accommodationUnit: worker.accommodationUnit || '',
-        roomCapacity: worker.roomCapacity || 'Single',
       });
     } else {
       setEditingWorker(null);
@@ -83,12 +81,17 @@ const Workers = () => {
         form.setFieldValue('company', admin?.company?._id);
       }
     }
+    setModalVisible(true);
   };
 
   const handleSubmit = async (values) => {
     setSubmitting(true);
+    const { shiftMain, convoyNum, ...rest } = values;
     const data = {
-      ...values,
+      ...rest,
+      shiftType: shiftMain === 'Цуваа' && convoyNum
+        ? `Цуваа-${convoyNum}`
+        : (shiftMain || ''),
       birthDate: values.birthDate?.format('YYYY-MM-DD'),
       employmentDate: values.employmentDate?.format('YYYY-MM-DD'),
     };
@@ -709,6 +712,7 @@ const Workers = () => {
       <Modal
         title={editingWorker ? 'Ажилтан засах' : 'Ажилтан нэмэх'}
         open={modalVisible}
+        forceRender
         onCancel={() => {
           setModalVisible(false);
           form.resetFields();
@@ -779,43 +783,31 @@ const Workers = () => {
               <DatePicker style={{ width: '100%' }} placeholder="Огноо сонгох" />
             </Form.Item>
 
-            {/* PVT Fleet fields */}
-            <Form.Item name="shiftType" label="Ээлж (PVT)">
-              <Select placeholder="Ээлж сонгох">
-                <Select.Option value="Day">Өдрийн ээлж</Select.Option>
-                <Select.Option value="Night">Шөнийн ээлж</Select.Option>
+            {/* Ажлын ээлж / байр */}
+            <Form.Item name="shiftMain" label="Ээлж">
+              <Select placeholder="Ээлж сонгох" allowClear
+                onChange={() => form.setFieldValue('convoyNum', undefined)}>
+                <Select.Option value="Өдөр">Өдөр</Select.Option>
+                <Select.Option value="Шөнө">Шөнө</Select.Option>
+                <Select.Option value="Цуваа">Цуваа</Select.Option>
               </Select>
             </Form.Item>
 
-            <Form.Item name="logisticsTrack" label="Тээврийн чиглэл (PVT)">
-              <Select placeholder="Сонгох">
-                <Select.Option value="Short Haul Driver">Богино зам</Select.Option>
-                <Select.Option value="Convoy Driver">Цуваа</Select.Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item shouldUpdate={(p,c) => p.logisticsTrack !== c.logisticsTrack} noStyle>
-              {({getFieldValue}) => getFieldValue('logisticsTrack') === 'Convoy Driver' && (
-                <Form.Item name="convoyConfig" label="Цуваа дугаар">
-                  <Select placeholder="Сонгох" allowClear>
-                    {['Convoy-1','Convoy-2','Convoy-3','Convoy-4','Convoy-5'].map(c=>(
-                      <Select.Option key={c} value={c}>{c}</Select.Option>
+            <Form.Item shouldUpdate={(p,c) => p.shiftMain !== c.shiftMain} noStyle>
+              {({getFieldValue}) => getFieldValue('shiftMain') === 'Цуваа' && (
+                <Form.Item name="convoyNum" label="Цуваа дугаар"
+                  rules={[{required:true, message:'Цуваа дугаар сонгоно уу'}]}>
+                  <Select placeholder="Дугаар сонгох">
+                    {[1,2,3,4,5,6,7].map(n => (
+                      <Select.Option key={n} value={n}>Цуваа-{n}</Select.Option>
                     ))}
                   </Select>
                 </Form.Item>
               )}
             </Form.Item>
 
-            <Form.Item name="accommodationUnit" label="Орон сууцны дугаар">
-              <Input placeholder="Блок / Өрөө дугаар" />
-            </Form.Item>
-
-            <Form.Item name="roomCapacity" label="Өрөөний багтаамж">
-              <Select placeholder="Сонгох">
-                <Select.Option value="Single">Ганцаарчилсан</Select.Option>
-                <Select.Option value="2-person">2 хүн</Select.Option>
-                <Select.Option value="3+ shared">3+ хамтарсан</Select.Option>
-              </Select>
+            <Form.Item name="accommodationUnit" label="Байр">
+              <Input placeholder="Байр, блок, өрөө дугаар" />
             </Form.Item>
           </div>
 
