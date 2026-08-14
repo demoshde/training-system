@@ -36,10 +36,13 @@ const { Title, Text, Paragraph } = Typography;
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 // Helper function to get full URL for uploaded files
+// Also strips old absolute localhost URLs that may be stored in the DB
 const getFileUrl = (url) => {
   if (!url) return '';
-  if (url.startsWith('/uploads/')) {
-    return `${API_BASE}${url}`;
+  // Normalize old absolute localhost URLs to relative paths
+  const normalized = url.replace(/^https?:\/\/[^/]+(\/uploads\/)/, '/uploads/');
+  if (normalized.startsWith('/uploads/')) {
+    return `${API_BASE}${normalized}`;
   }
   return url;
 };
@@ -101,6 +104,7 @@ const Training = () => {
   const [showGoogleSlidesFullscreen, setShowGoogleSlidesFullscreen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mediaLoadError, setMediaLoadError] = useState(false);
+  const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(true);
   const trainingContainerRef = useRef(null);
 
   // --- Fullscreen helpers ---
@@ -204,7 +208,7 @@ const Training = () => {
   // Auto-enter fullscreen once training data has loaded
   useEffect(() => {
     if (!loading && training) {
-      enterFullscreen();
+      enterFullscreen().then(() => setShowFullscreenPrompt(false)).catch(() => {});
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
@@ -598,6 +602,49 @@ const Training = () => {
       ref={trainingContainerRef}
       style={{ minHeight: '100vh', background: '#1f2937', display: 'flex', flexDirection: 'column', ...visualFullscreenStyle }}
     >
+      {/* Fullscreen launch prompt — shown on first load, requires direct tap to satisfy browser gesture policy */}
+      {showFullscreenPrompt && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            background: 'rgba(0,0,0,0.88)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            gap: 20, padding: 24
+          }}
+        >
+          <span style={{ fontSize: 56 }}>📱</span>
+          <Title level={3} style={{ color: 'white', textAlign: 'center', margin: 0, fontSize: 'clamp(18px, 4vw, 24px)' }}>
+            {training.title}
+          </Title>
+          <Text style={{ color: '#9ca3af', textAlign: 'center', fontSize: 'clamp(13px, 3vw, 15px)' }}>
+            Бүтэн дэлгэцээр сургалт үзэх нь тохиромжтой
+          </Text>
+          <Space direction="vertical" style={{ width: '100%', maxWidth: 320 }}>
+            <Button
+              type="primary"
+              block
+              size="large"
+              icon={<ExpandOutlined />}
+              onClick={() => {
+                enterFullscreen();
+                setShowFullscreenPrompt(false);
+              }}
+              style={{ height: 52, fontSize: 16 }}
+            >
+              Бүтэн дэлгэцээр нээх
+            </Button>
+            <Button
+              block
+              size="large"
+              onClick={() => setShowFullscreenPrompt(false)}
+              style={{ height: 52, fontSize: 16, background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)', color: 'white' }}
+            >
+              Хэвийн цонхиоцоор үргэлжлүүлэх
+            </Button>
+          </Space>
+        </div>
+      )}
       {/* Header */}
       <header style={{ 
         background: '#374151', 
