@@ -19,7 +19,11 @@ if (missingEnvVars.length > 0) {
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ limit: '20mb', extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve uploads with explicit range-request support (required for video/audio streaming)
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Accept-Ranges', 'bytes');
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)

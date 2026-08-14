@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { workerApi } from '../../api';
 import toast from 'react-hot-toast';
@@ -20,6 +20,7 @@ import {
   CheckOutlined,
   HomeOutlined,
   ExpandOutlined,
+  CompressOutlined,
   CloseOutlined,
   ZoomInOutlined,
   ZoomOutOutlined,
@@ -31,15 +32,14 @@ import {
 
 const { Title, Text, Paragraph } = Typography;
 
-// Use production URL if in production, otherwise localhost
-const API_URL = import.meta.env.VITE_API_URL || 
-                (window.location.hostname === 'localhost' ? 'http://localhost:5001' : '');
+// Prefix for uploaded file URLs — empty lets Vite dev proxy or Nginx prod proxy handle /uploads/
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 // Helper function to get full URL for uploaded files
 const getFileUrl = (url) => {
   if (!url) return '';
   if (url.startsWith('/uploads/')) {
-    return `${API_URL}${url}`;
+    return `${API_BASE}${url}`;
   }
   return url;
 };
@@ -99,6 +99,37 @@ const Training = () => {
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfZoom, setPdfZoom] = useState(100);
   const [showGoogleSlidesFullscreen, setShowGoogleSlidesFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mediaLoadError, setMediaLoadError] = useState(false);
+  const trainingContainerRef = useRef(null);
+
+  // --- Fullscreen helpers ---
+  const enterFullscreen = async () => {
+    const el = trainingContainerRef.current || document.documentElement;
+    try {
+      if (el.requestFullscreen) await el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+      else if (el.msRequestFullscreen) await el.msRequestFullscreen();
+      else setIsFullscreen(true); // visual fallback (iOS)
+      screen.orientation?.lock?.('landscape').catch(() => {});
+    } catch {
+      setIsFullscreen(true); // visual fallback if API rejected
+    }
+  };
+
+  const exitFullscreen = () => {
+    try {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen)
+          ?.call(document);
+      } else {
+        setIsFullscreen(false);
+      }
+      screen.orientation?.unlock?.();
+    } catch {
+      setIsFullscreen(false);
+    }
+  };
 
   useEffect(() => {
     fetchTrainingData();
@@ -144,6 +175,39 @@ const Training = () => {
     
     return () => clearInterval(timer);
   }, [currentSlide, training, enrollment]);
+
+  // Reset media error when navigating between slides
+  useEffect(() => {
+    setMediaLoadError(false);
+  }, [currentSlide]);
+
+  // Track native fullscreen state changes
+  useEffect(() => {
+    const onFSChange = () => {
+      const active = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      setIsFullscreen(active);
+      if (!active) screen.orientation?.unlock?.();
+    };
+    document.addEventListener('fullscreenchange', onFSChange);
+    document.addEventListener('webkitfullscreenchange', onFSChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFSChange);
+      document.removeEventListener('webkitfullscreenchange', onFSChange);
+      // Clean up on unmount: exit fullscreen & unlock orientation
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        (document.exitFullscreen || document.webkitExitFullscreen)?.call(document).catch(() => {});
+      }
+      screen.orientation?.unlock?.();
+    };
+  }, []);
+
+  // Auto-enter fullscreen once training data has loaded
+  useEffect(() => {
+    if (!loading && training) {
+      enterFullscreen();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   const fetchTrainingData = async () => {
     try {
@@ -511,6 +575,12 @@ const Training = () => {
   }
 
   const handleExit = () => {
+    // Exit native fullscreen before navigating away
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen)?.call(document).catch(() => {});
+    }
+    setIsFullscreen(false);
+    screen.orientation?.unlock?.();
     if (isCompleted) {
       navigate('/');
     } else {
@@ -518,8 +588,16 @@ const Training = () => {
     }
   };
 
+  // Visual-fullscreen: cover viewport via CSS when native API is unavailable (e.g. iOS Safari)
+  const visualFullscreenStyle = isFullscreen && !document.fullscreenElement && !document.webkitFullscreenElement
+    ? { position: 'fixed', inset: 0, zIndex: 9999 }
+    : {};
+
   return (
-    <div style={{ minHeight: '100vh', background: '#1f2937', display: 'flex', flexDirection: 'column' }}>
+    <div
+      ref={trainingContainerRef}
+      style={{ minHeight: '100vh', background: '#1f2937', display: 'flex', flexDirection: 'column', ...visualFullscreenStyle }}
+    >
       {/* Header */}
       <header style={{ 
         background: '#374151', 
@@ -556,7 +634,18 @@ const Training = () => {
           <Text type="secondary" style={{ color: '#9ca3af', fontSize: 'clamp(11px, 2.5vw, 14px)', whiteSpace: 'nowrap' }}>
             {currentSlide + 1} / {training.slides.length}
           </Text>
-          <Button size="small" onClick={handleExit} style={{ fontSize: 'clamp(11px, 2.5vw, 14px)', padding: '4px 12px' }}>
+          <Button
+            type="text"
+            icon={isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
+            onClick={isFullscreen ? exitFullscreen : enterFullscreen}
+            style={{ color: 'white', minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            title={isFullscreen ? 'Бүтэн дэлгэцнээс гарах' : 'Бүтэн дэлгэц'}
+          />
+          <Button
+            size="small"
+            onClick={handleExit}
+            style={{ fontSize: 'clamp(11px, 2.5vw, 14px)', padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 12px)', minWidth: 44, minHeight: 44 }}
+          >
             Гарах
           </Button>
         </div>
@@ -571,7 +660,7 @@ const Training = () => {
           >
             {/* Video Content (YouTube) */}
             {slide?.videoUrl && (
-              <div style={{ aspectRatio: '16/9', background: 'black' }}>
+              <div style={{ aspectRatio: '16/9', background: 'black', position: 'relative' }}>
                 <iframe
                   src={`https://www.youtube.com/embed/${getYouTubeId(slide.videoUrl)}?rel=0`}
                   style={{ width: '100%', height: '100%', border: 0 }}
@@ -579,38 +668,66 @@ const Training = () => {
                   allowFullScreen
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 />
+                <a
+                  href={slide.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    position: 'absolute', bottom: 8, right: 8,
+                    background: 'rgba(0,0,0,0.65)', borderRadius: 6,
+                    padding: '3px 8px', color: '#93c5fd', fontSize: 12,
+                    textDecoration: 'none'
+                  }}
+                >
+                  YouTube дээр нээх ↗
+                </a>
               </div>
             )}
             
             {/* PDF Content - support both old pdfUrl and new url field */}
             {(slide?.pdfUrl || (slide?.url && slide?.contentType === 'application/pdf') || (slide?.type === 'file' && slide?.url?.endsWith('.pdf'))) && !slide?.videoUrl && !isPowerPoint(slide) && (
               <div style={{ position: 'relative', background: token.colorBgLayout, aspectRatio: '4/3', minHeight: '300px' }}>
-                <iframe
-                  src={`${getFileUrl(slide.pdfUrl || slide.url)}#toolbar=0&view=FitH`}
-                  style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, border: 0 }}
-                  title={slide.title || 'PDF Document'}
-                />
+                {mediaLoadError ? (
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 32 }}>⚠️</span>
+                    <Text style={{ color: '#ef4444' }}>Файл ачаалахад алдаа гарлаа</Text>
+                    <Space>
+                      <Button icon={<ReloadOutlined />} onClick={() => setMediaLoadError(false)}>Дахин оролдох</Button>
+                      <Button icon={<DownloadOutlined />} href={getFileUrl(slide.pdfUrl || slide.url)} target="_blank" rel="noopener noreferrer">Файл татах</Button>
+                    </Space>
+                  </div>
+                ) : (
+                  <iframe
+                    src={`${getFileUrl(slide.pdfUrl || slide.url)}#toolbar=0&view=FitH`}
+                    style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, border: 0 }}
+                    title={slide.title || 'PDF Document'}
+                    onError={() => setMediaLoadError(true)}
+                  />
+                )}
                 {/* Expand button - always visible */}
-                <Button
-                  type="primary"
-                  icon={<ExpandOutlined />}
-                  onClick={() => {
-                    setShowPdfViewer(true);
-                    setPdfZoom(100);
-                  }}
-                  size="small"
-                  style={{ 
-                    position: 'absolute', 
-                    top: 'clamp(8px, 2vw, 12px)', 
-                    right: 'clamp(8px, 2vw, 12px)', 
-                    zIndex: 10,
-                    fontSize: 'clamp(11px, 2.5vw, 14px)',
-                    padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 12px)'
-                  }}
-                >
-                  <span style={{ display: 'none' }}>Томруулах</span>
-                  <ExpandOutlined />
-                </Button>
+                {!mediaLoadError && (
+                  <Button
+                    type="primary"
+                    icon={<ExpandOutlined />}
+                    onClick={() => {
+                      setShowPdfViewer(true);
+                      setPdfZoom(100);
+                    }}
+                    size="small"
+                    style={{ 
+                      position: 'absolute', 
+                      top: 'clamp(8px, 2vw, 12px)', 
+                      right: 'clamp(8px, 2vw, 12px)', 
+                      zIndex: 10,
+                      fontSize: 'clamp(11px, 2.5vw, 14px)',
+                      padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 12px)',
+                      minWidth: 44,
+                      minHeight: 44
+                    }}
+                  >
+                    Томруулах
+                  </Button>
+                )}
               </div>
             )}
             
