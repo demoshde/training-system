@@ -600,7 +600,7 @@ const Training = () => {
   return (
     <div
       ref={trainingContainerRef}
-      style={{ minHeight: '100vh', background: '#1f2937', display: 'flex', flexDirection: 'column', ...visualFullscreenStyle }}
+      style={{ height: '100dvh', background: '#111827', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...visualFullscreenStyle }}
     >
       {/* Fullscreen launch prompt — shown on first load, requires direct tap to satisfy browser gesture policy */}
       {showFullscreenPrompt && (
@@ -645,523 +645,231 @@ const Training = () => {
           </Space>
         </div>
       )}
-      {/* Header */}
-      <header style={{ 
-        background: '#374151', 
-        color: 'white', 
-        padding: '8px 12px', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '8px'
+      {/* Compact header */}
+      <header style={{
+        height: 48, flexShrink: 0,
+        background: '#111827',
+        display: 'flex', alignItems: 'center',
+        padding: '0 4px',
+        borderBottom: '1px solid rgba(255,255,255,0.07)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1 }}>
-          <Button
-            type="text"
-            icon={<HomeOutlined />}
-            onClick={handleExit}
-            style={{ color: 'white', marginRight: 8, padding: '4px 8px' }}
-            title="Гарах"
-          />
-          <Text 
-            strong 
-            style={{ 
-              color: 'white',
-              fontSize: 'clamp(12px, 3vw, 16px)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {training.title}
-          </Text>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Text type="secondary" style={{ color: '#9ca3af', fontSize: 'clamp(11px, 2.5vw, 14px)', whiteSpace: 'nowrap' }}>
-            {currentSlide + 1} / {training.slides.length}
-          </Text>
-          <Button
-            type="text"
-            icon={isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
-            onClick={isFullscreen ? exitFullscreen : enterFullscreen}
-            style={{ color: 'white', minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            title={isFullscreen ? 'Бүтэн дэлгэцнээс гарах' : 'Бүтэн дэлгэц'}
-          />
-          <Button
-            size="small"
-            onClick={handleExit}
-            style={{ fontSize: 'clamp(11px, 2.5vw, 14px)', padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 12px)', minWidth: 44, minHeight: 44 }}
-          >
-            Гарах
-          </Button>
-        </div>
+        <Button type="text" icon={<HomeOutlined />} onClick={handleExit}
+          style={{ color: 'white', width: 44, height: 44, flexShrink: 0 }} />
+        <Text strong style={{
+          color: 'white', fontSize: 13, flex: 1,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          padding: '0 6px'
+        }}>
+          {training.title}
+        </Text>
+        <Text style={{ color: '#6b7280', fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          {currentSlide + 1}/{training.slides.length}
+        </Text>
+        <Button type="text"
+          icon={isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
+          onClick={isFullscreen ? exitFullscreen : enterFullscreen}
+          style={{ color: '#9ca3af', width: 44, height: 44, flexShrink: 0 }}
+          title={isFullscreen ? 'Бүтэн дэлгэцнээс гарах' : 'Бүтэн дэлгэц'}
+        />
       </header>
 
-      {/* Slide content */}
-      <main style={{ flex: 1, overflow: 'auto', padding: 'clamp(4px, 2vw, 16px)' }}>
-        <div style={{ maxWidth: 896, width: '100%', margin: '0 auto' }}>
-          <Card 
-            styles={{ body: { padding: 0 } }}
-            style={{ borderRadius: 'clamp(8px, 2vw, 12px)', overflow: 'hidden' }}
-          >
-            {/* Video Content (YouTube) */}
-            {slide?.videoUrl && (
-              <div style={{ aspectRatio: '16/9', background: 'black', position: 'relative' }}>
-                <iframe
-                  src={`https://www.youtube.com/embed/${getYouTubeId(slide.videoUrl)}?rel=0`}
-                  style={{ width: '100%', height: '100%', border: 0 }}
-                  title={slide.title || 'Video'}
-                  allowFullScreen
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                />
-                <a
-                  href={slide.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    position: 'absolute', bottom: 8, right: 8,
-                    background: 'rgba(0,0,0,0.65)', borderRadius: 6,
-                    padding: '3px 8px', color: '#93c5fd', fontSize: 12,
-                    textDecoration: 'none'
-                  }}
-                >
-                  YouTube дээр нээх ↗
-                </a>
-              </div>
-            )}
-            
-            {/* PDF Content - support both old pdfUrl and new url field */}
-            {(slide?.pdfUrl || (slide?.url && slide?.contentType === 'application/pdf') || (slide?.type === 'file' && slide?.url?.endsWith('.pdf'))) && !slide?.videoUrl && !isPowerPoint(slide) && (
-              <div style={{ position: 'relative', background: token.colorBgLayout, aspectRatio: '4/3', minHeight: '300px' }}>
-                {mediaLoadError ? (
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 32 }}>⚠️</span>
-                    <Text style={{ color: '#ef4444' }}>Файл ачаалахад алдаа гарлаа</Text>
-                    <Space>
-                      <Button icon={<ReloadOutlined />} onClick={() => setMediaLoadError(false)}>Дахин оролдох</Button>
-                      <Button icon={<DownloadOutlined />} href={getFileUrl(slide.pdfUrl || slide.url)} target="_blank" rel="noopener noreferrer">Файл татах</Button>
-                    </Space>
-                  </div>
-                ) : (
-                  <iframe
-                    src={`${getFileUrl(slide.pdfUrl || slide.url)}#toolbar=0&view=FitH`}
-                    style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, border: 0 }}
-                    title={slide.title || 'PDF Document'}
-                    onError={() => setMediaLoadError(true)}
-                  />
-                )}
-                {/* Expand button - always visible */}
-                {!mediaLoadError && (
-                  <Button
-                    type="primary"
-                    icon={<ExpandOutlined />}
-                    onClick={() => {
-                      setShowPdfViewer(true);
-                      setPdfZoom(100);
-                    }}
-                    size="small"
-                    style={{ 
-                      position: 'absolute', 
-                      top: 'clamp(8px, 2vw, 12px)', 
-                      right: 'clamp(8px, 2vw, 12px)', 
-                      zIndex: 10,
-                      fontSize: 'clamp(11px, 2.5vw, 14px)',
-                      padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 12px)',
-                      minWidth: 44,
-                      minHeight: 44
-                    }}
-                  >
-                    Томруулах
-                  </Button>
-                )}
-              </div>
-            )}
-            
-            {/* Google Slides Content */}
-            {isGoogleSlides(slide) && !slide?.videoUrl && (
-              <div style={{ 
-                position: 'relative', 
-                aspectRatio: '16/9',
-                background: token.colorBgLayout
-              }}>
-                <iframe
-                  src={slide.url}
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    border: 'none',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0
-                  }}
-                  title={slide.title || 'Google Slides Presentation'}
-                  allowFullScreen
-                />
-                <Button
-                  type="primary"
-                  icon={<ExpandOutlined />}
-                  onClick={() => setShowGoogleSlidesFullscreen(true)}
-                  size="small"
-                  style={{ 
-                    position: 'absolute', 
-                    top: 'clamp(8px, 2vw, 12px)', 
-                    right: 'clamp(8px, 2vw, 12px)', 
-                    zIndex: 10,
-                    fontSize: 'clamp(11px, 2.5vw, 14px)',
-                    padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 12px)'
-                  }}
-                >
-                  <span style={{ display: 'none' }}>Бүтэн дэлгэц</span>
-                  <ExpandOutlined />
-                </Button>
-              </div>
-            )}
-            
-            {/* PowerPoint Content */}
-            {isPowerPoint(slide) && !slide?.videoUrl && !isGoogleSlides(slide) && (
-              <div style={{ 
-                position: 'relative', 
-                aspectRatio: '16/9',
-                background: token.colorBgLayout
-              }}>
-                {/* Try Google Docs Viewer for PPT files */}
-                <iframe
-                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + getFileUrl(slide.url))}&embedded=true`}
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    border: 'none',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0
-                  }}
-                  title="PowerPoint Viewer"
-                  sandbox="allow-scripts allow-same-origin allow-popups"
-                />
-                {/* Fallback overlay - shown if iframe fails to load */}
-                <div style={{ 
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                  padding: '24px 16px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <FilePptOutlined style={{ fontSize: 20, color: 'white' }} />
-                    <Text style={{ color: 'white', fontSize: 14 }}>
-                      {slide.fileName || 'PowerPoint Presentation'}
-                    </Text>
-                  </div>
-                  <Button 
-                    type="primary" 
-                    size="small"
-                    icon={<DownloadOutlined />}
-                    href={getFileUrl(slide.url)}
-                    target="_blank"
-                  >
-                    Татах
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            {/* Image Content - support both old imageUrl and new url field */}
-            {(slide?.imageUrl || 
-              (slide?.url && slide?.contentType?.startsWith('image/')) || 
-              (slide?.type === 'image') ||
-              (slide?.url && slide?.url?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i))) && 
-              !slide?.pdfUrl && 
-              !slide?.videoUrl && 
-              !isPowerPoint(slide) && 
-              !isGoogleSlides(slide) && (
-              <div style={{ 
-                width: '100%',
-                maxHeight: '70vh',
-                background: token.colorBgLayout,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '16px'
-              }}>
-                <img
-                  src={getFileUrl(slide.imageUrl || slide.url)}
-                  alt={slide.title || 'Slide'}
-                  style={{ 
-                    maxWidth: '100%', 
-                    maxHeight: '100%', 
-                    width: 'auto',
-                    height: 'auto',
-                    objectFit: 'contain' 
-                  }}
-                  onError={(e) => {
-                    // Only log in development
-                    if (process.env.NODE_ENV === 'development') {
-                      console.error('Image load error:', slide);
-                    }
-                    e.target.style.display = 'none';
-                    const errorDiv = document.createElement('div');
-                    errorDiv.style.cssText = 'padding: 48px; text-align: center; color: #ef4444; font-size: 16px;';
-                    errorDiv.innerHTML = '⚠️ Зураг ачааллахад алдаа гарлаа';
-                    e.target.parentElement.appendChild(errorDiv);
-                  }}
-                />
-              </div>
-            )}
-            
-            {/* Text-only slide */}
-            {slide?.type === 'text' && !slide?.url && !slide?.imageUrl && !slide?.pdfUrl && !slide?.videoUrl && (
-              <div style={{ 
-                padding: 'clamp(16px, 4vw, 32px)', 
-                background: 'linear-gradient(to bottom right, #eff6ff, #e0e7ff)', 
-                minHeight: 'clamp(200px, 40vh, 300px)', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                justifyContent: 'center' 
-              }}>
-                {slide?.title && (
-                  <Title level={3} style={{ textAlign: 'center', marginBottom: 'clamp(12px, 3vw, 16px)', fontSize: 'clamp(16px, 4vw, 24px)' }}>
-                    {slide.title}
-                  </Title>
-                )}
-                {slide?.content && (
-                  <Paragraph style={{ textAlign: 'center', whiteSpace: 'pre-wrap', fontSize: 'clamp(13px, 3vw, 16px)', lineHeight: 1.6 }}>
-                    {slide.content}
-                  </Paragraph>
-                )}
-              </div>
-            )}
-            
-            {/* Title and Content for media slides */}
-            {(slide?.imageUrl || slide?.pdfUrl || slide?.videoUrl || (slide?.url && slide?.type !== 'text')) && (
-              <div style={{ padding: 'clamp(12px, 3vw, 24px)' }}>
-                {slide?.title && (
-                  <Title level={4} style={{ marginBottom: 'clamp(8px, 2vw, 12px)', fontSize: 'clamp(14px, 3.5vw, 20px)' }}>
-                    {slide.title}
-                  </Title>
-                )}
-                {slide?.content && (
-                  <div 
-                    dangerouslySetInnerHTML={{ __html: slide.content }}
-                    style={{ 
-                      color: token.colorTextSecondary,
-                      fontSize: 'clamp(12px, 2.5vw, 14px)',
-                      lineHeight: 1.6
-                    }}
-                  />
-                )}
-              </div>
-            )}
-          </Card>
-        </div>
-      </main>
+      {/* Slide content — edge-to-edge, no card/padding */}
+      <main style={{ flex: 1, overflow: 'auto', background: '#000', position: 'relative' }}>
 
-      {/* Floating Navigation Buttons for Mobile */}
-      {!isLastSlide && (
-        <>
-          {/* Previous Button - Left Side */}
-          {currentSlide > 0 && (
-            <Button
-              type="primary"
-              shape="circle"
-              size="large"
-              icon={<LeftOutlined />}
-              onClick={() => handleSlideChange(currentSlide - 1)}
-              style={{
-                position: 'fixed',
-                left: 'clamp(8px, 2vw, 16px)',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: 'clamp(48px, 12vw, 64px)',
-                height: 'clamp(48px, 12vw, 64px)',
-                fontSize: 'clamp(18px, 4vw, 24px)',
-                zIndex: 100,
-                background: 'rgba(55, 65, 81, 0.9)',
-                borderColor: 'rgba(55, 65, 81, 0.9)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+        {/* YouTube Video */}
+        {slide?.videoUrl && (
+          <div style={{ background: '#000', position: 'relative' }}>
+            <div style={{ aspectRatio: '16/9', width: '100%' }}>
+              <iframe
+                src={`https://www.youtube.com/embed/${getYouTubeId(slide.videoUrl)}?rel=0`}
+                style={{ width: '100%', height: '100%', border: 0, display: 'block' }}
+                title={slide.title || 'Video'}
+                allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              />
+            </div>
+            <a href={slide.videoUrl} target="_blank" rel="noopener noreferrer"
+              style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.65)', borderRadius: 6, padding: '3px 8px', color: '#93c5fd', fontSize: 11, textDecoration: 'none' }}>
+              YouTube ↗
+            </a>
+          </div>
+        )}
+
+        {/* PDF */}
+        {(slide?.pdfUrl || (slide?.url && slide?.contentType === 'application/pdf') || (slide?.type === 'file' && slide?.url?.endsWith('.pdf'))) && !slide?.videoUrl && !isPowerPoint(slide) && (
+          <div style={{ width: '100%', height: 'calc(100dvh - 96px)', position: 'relative' }}>
+            {mediaLoadError ? (
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, background: '#111' }}>
+                <span style={{ fontSize: 32 }}>⚠️</span>
+                <Text style={{ color: '#ef4444' }}>Файл ачаалахад алдаа гарлаа</Text>
+                <Space>
+                  <Button icon={<ReloadOutlined />} onClick={() => setMediaLoadError(false)}>Дахин</Button>
+                  <Button icon={<DownloadOutlined />} href={getFileUrl(slide.pdfUrl || slide.url)} target="_blank" rel="noopener noreferrer">Татах</Button>
+                </Space>
+              </div>
+            ) : (
+              <iframe
+                src={`${getFileUrl(slide.pdfUrl || slide.url)}#toolbar=0&view=FitH`}
+                style={{ width: '100%', height: '100%', border: 0, display: 'block' }}
+                title={slide.title || 'PDF Document'}
+                onError={() => setMediaLoadError(true)}
+              />
+            )}
+            {!mediaLoadError && (
+              <Button type="primary" icon={<ExpandOutlined />}
+                onClick={() => { setShowPdfViewer(true); setPdfZoom(100); }}
+                size="small"
+                style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
+                Томруулах
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Google Slides */}
+        {isGoogleSlides(slide) && !slide?.videoUrl && (
+          <div style={{ width: '100%', height: 'calc(100dvh - 96px)', position: 'relative' }}>
+            <iframe
+              src={slide.url}
+              style={{ width: '100%', height: '100%', border: 0, display: 'block' }}
+              title={slide.title || 'Google Slides'}
+              allowFullScreen
+            />
+            <Button type="primary" icon={<ExpandOutlined />}
+              onClick={() => setShowGoogleSlidesFullscreen(true)}
+              size="small"
+              style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
+              Бүтэн дэлгэц
+            </Button>
+          </div>
+        )}
+
+        {/* PowerPoint */}
+        {isPowerPoint(slide) && !slide?.videoUrl && !isGoogleSlides(slide) && (
+          <div style={{ width: '100%', height: 'calc(100dvh - 96px)', position: 'relative' }}>
+            <iframe
+              src={`https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + getFileUrl(slide.url))}&embedded=true`}
+              style={{ width: '100%', height: '100%', border: 0, display: 'block' }}
+              title="PowerPoint Viewer"
+              sandbox="allow-scripts allow-same-origin allow-popups"
+            />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.75))', padding: '24px 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <FilePptOutlined style={{ fontSize: 18, color: 'white' }} />
+                <Text style={{ color: 'white', fontSize: 13 }}>{slide.fileName || 'PowerPoint'}</Text>
+              </div>
+              <Button type="primary" size="small" icon={<DownloadOutlined />} href={getFileUrl(slide.url)} target="_blank">Татах</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Image */}
+        {(slide?.imageUrl ||
+          (slide?.url && slide?.contentType?.startsWith('image/')) ||
+          (slide?.type === 'image') ||
+          (slide?.url && slide?.url?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i))) &&
+          !slide?.pdfUrl && !slide?.videoUrl && !isPowerPoint(slide) && !isGoogleSlides(slide) && (
+          <div style={{ width: '100%', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img
+              src={getFileUrl(slide.imageUrl || slide.url)}
+              alt={slide.title || 'Slide'}
+              style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 'calc(100dvh - 96px)', objectFit: 'contain' }}
+              onError={(e) => {
+                if (import.meta.env.DEV) console.error('Image error:', slide);
+                e.target.style.display = 'none';
+                const div = document.createElement('div');
+                div.style.cssText = 'padding:48px;text-align:center;color:#ef4444;font-size:16px;width:100%;background:#111';
+                div.innerHTML = '⚠️ Зураг ачааллахад алдаа гарлаа';
+                e.target.parentElement.appendChild(div);
               }}
             />
-          )}
-
-          {/* Next Button - Right Side */}
-          <Button
-            type="primary"
-            shape="circle"
-            size="large"
-            icon={canProceed ? <RightOutlined /> : null}
-            onClick={() => handleSlideChange(currentSlide + 1)}
-            disabled={!canProceed}
-            style={{
-              position: 'fixed',
-              right: 'clamp(8px, 2vw, 16px)',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: 'clamp(48px, 12vw, 64px)',
-              height: 'clamp(48px, 12vw, 64px)',
-              fontSize: 'clamp(18px, 4vw, 24px)',
-              zIndex: 100,
-              background: canProceed ? 'rgba(37, 99, 235, 0.9)' : 'rgba(75, 85, 99, 0.6)',
-              borderColor: canProceed ? 'rgba(37, 99, 235, 0.9)' : 'rgba(107, 114, 128, 0.6)',
-              boxShadow: canProceed ? '0 4px 12px rgba(37, 99, 235, 0.4)' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: canProceed ? 'pointer' : 'not-allowed'
-            }}
-          >
-            {!canProceed && (
-              <span style={{
-                fontSize: 'clamp(14px, 3vw, 18px)',
-                fontWeight: 'bold',
-                color: 'white'
-              }}>
-                {timeRemaining}
-              </span>
-            )}
-          </Button>
-        </>
-      )}
-
-      {/* Navigation */}
-      <footer style={{ background: '#374151', padding: 'clamp(8px, 2vw, 16px)' }}>
-        <div style={{ maxWidth: 896, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-          <Button
-            type="text"
-            icon={<LeftOutlined />}
-            onClick={() => handleSlideChange(currentSlide - 1)}
-            disabled={currentSlide === 0}
-            style={{ 
-              color: currentSlide === 0 ? '#6b7280' : 'white',
-              fontSize: 'clamp(11px, 2.5vw, 14px)',
-              padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 15px)'
-            }}
-          >
-            <span style={{ display: 'none' }}>Өмнөх</span>
-            <span style={{ display: 'inline' }}>←</span>
-          </Button>
-
-          {/* Progress dots */}
-          <div style={{ display: 'flex', gap: 'clamp(4px, 1vw, 8px)', flexWrap: 'wrap', justifyContent: 'center', flex: 1, maxWidth: '60%' }}>
-            {training.slides.map((_, index) => {
-              const canGoToSlide = index <= currentSlide || canProceed || enrollment?.isPassed;
-              return (
-                <button
-                  key={index}
-                  onClick={() => canGoToSlide && handleSlideChange(index)}
-                  disabled={!canGoToSlide}
-                  style={{
-                    width: index === currentSlide ? 'clamp(12px, 3vw, 16px)' : 'clamp(6px, 1.5vw, 8px)',
-                    height: 'clamp(6px, 1.5vw, 8px)',
-                    borderRadius: 'clamp(3px, 1vw, 4px)',
-                    border: 'none',
-                    cursor: canGoToSlide ? 'pointer' : 'not-allowed',
-                    transition: 'all 0.2s',
-                    background: index === currentSlide
-                      ? '#3b82f6'
-                      : index < currentSlide
-                      ? '#93c5fd'
-                      : canGoToSlide
-                      ? '#9ca3af'
-                      : '#4b5563'
-                  }}
-                />
-              );
-            })}
           </div>
+        )}
 
-          {isLastSlide ? (
-            enrollment?.status === 'completed' || enrollment?.isPassed ? (
-              <Button
-                icon={<CheckOutlined />}
-                onClick={() => navigate('/')}
-              >
-                Дууссан
-              </Button>
-            ) : (
-              <Button
-                type={canProceed ? 'primary' : 'default'}
-                icon={canProceed ? <CheckOutlined /> : null}
-                onClick={handleStartQuiz}
-                disabled={!canProceed}
-                style={{ 
-                  background: canProceed ? '#16a34a' : 'rgba(255,255,255,0.1)',
-                  borderColor: canProceed ? '#16a34a' : 'rgba(255,255,255,0.3)',
-                  color: canProceed ? 'white' : 'rgba(255,255,255,0.6)',
-                  fontSize: 'clamp(11px, 2.5vw, 14px)',
-                  padding: 'clamp(4px, 1vw, 8px) clamp(12px, 3vw, 15px)'
+        {/* Text-only slide */}
+        {slide?.type === 'text' && !slide?.url && !slide?.imageUrl && !slide?.pdfUrl && !slide?.videoUrl && (
+          <div style={{ minHeight: 'calc(100dvh - 96px)', padding: '32px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(135deg, #1e3a5f 0%, #111827 100%)' }}>
+            {slide?.title && <Title level={3} style={{ color: 'white', textAlign: 'center', marginBottom: 16, fontSize: 'clamp(18px, 4vw, 26px)' }}>{slide.title}</Title>}
+            {slide?.content && <Paragraph style={{ color: '#d1d5db', textAlign: 'center', whiteSpace: 'pre-wrap', fontSize: 'clamp(14px, 3vw, 16px)', lineHeight: 1.7, margin: 0 }}>{slide.content}</Paragraph>}
+          </div>
+        )}
+
+        {/* Title + description for media slides shown below the media */}
+        {(slide?.imageUrl || slide?.pdfUrl || slide?.videoUrl || (slide?.url && slide?.type !== 'text')) && (slide?.title || slide?.content) && (
+          <div style={{ padding: '14px 16px', background: '#111827', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            {slide?.title && <Title level={5} style={{ color: 'white', margin: '0 0 6px', fontSize: 'clamp(13px, 3vw, 17px)' }}>{slide.title}</Title>}
+            {slide?.content && <div dangerouslySetInnerHTML={{ __html: slide.content }} style={{ color: '#9ca3af', fontSize: 'clamp(12px, 2.5vw, 14px)', lineHeight: 1.6 }} />}
+          </div>
+        )}
+
+      </main>
+
+      {/* Slim bottom navigation bar */}
+      <footer style={{
+        height: 48, flexShrink: 0,
+        background: '#111827',
+        display: 'flex', alignItems: 'center',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        padding: '0 4px'
+      }}>
+        {/* Previous */}
+        <Button type="text" icon={<LeftOutlined />}
+          onClick={() => handleSlideChange(currentSlide - 1)}
+          disabled={currentSlide === 0}
+          style={{ color: currentSlide === 0 ? '#374151' : 'white', width: 48, height: 48, flexShrink: 0 }}
+        />
+
+        {/* Progress dots */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, overflow: 'hidden', padding: '0 4px' }}>
+          {training.slides.map((_, index) => {
+            const canGoToSlide = index <= currentSlide || canProceed || enrollment?.isPassed;
+            return (
+              <button key={index} onClick={() => canGoToSlide && handleSlideChange(index)}
+                disabled={!canGoToSlide}
+                style={{
+                  width: index === currentSlide ? 20 : 7, height: 7,
+                  borderRadius: 4, border: 'none', padding: 0, flexShrink: 0,
+                  cursor: canGoToSlide ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s',
+                  background: index === currentSlide ? '#3b82f6' : index < currentSlide ? '#6b7280' : '#374151'
                 }}
-              >
-                {canProceed ? (
-                  <span style={{ whiteSpace: 'nowrap' }}>{questions.length > 0 ? 'Шалгалт' : 'Дуусгах'}</span>
-                ) : (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 'clamp(4px, 1vw, 8px)' }}>
-                    <span style={{ 
-                      width: 'clamp(18px, 4vw, 24px)', 
-                      height: 'clamp(18px, 4vw, 24px)', 
-                      borderRadius: '50%', 
-                      background: '#2563eb',
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      fontSize: 'clamp(10px, 2vw, 12px)',
-                      fontWeight: 'bold',
-                      color: 'white'
-                    }}>
-                      {timeRemaining}
-                    </span>
-                    <span style={{ whiteSpace: 'nowrap' }}>{questions.length > 0 ? 'Шалгалт' : 'Дуусгах'}</span>
-                  </span>
-                )}
-              </Button>
-            )
-          ) : (
-            <Button
-              type={canProceed ? 'text' : 'default'}
-              onClick={() => handleSlideChange(currentSlide + 1)}
-              disabled={!canProceed}
-              style={{ 
-                color: canProceed ? 'white' : 'rgba(255,255,255,0.6)',
-                background: canProceed ? 'transparent' : 'rgba(255,255,255,0.1)',
-                borderColor: canProceed ? 'transparent' : 'rgba(255,255,255,0.3)',
-                fontSize: 'clamp(11px, 2.5vw, 14px)',
-                padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 15px)'
-              }}
-            >
-              {canProceed ? (
-                <span>
-                  <span style={{ display: 'none' }}>Дараах</span>
-                  <span style={{ display: 'inline' }}>→</span>
-                </span>
-              ) : (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 'clamp(4px, 1vw, 8px)' }}>
-                  <span style={{ 
-                    width: 'clamp(20px, 4vw, 28px)', 
-                    height: 'clamp(20px, 4vw, 28px)', 
-                    borderRadius: '50%', 
-                    background: '#2563eb', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    fontSize: 'clamp(10px, 2vw, 12px)',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-                  }}>
-                    {timeRemaining}
-                  </span>
-                  <span style={{ display: 'none' }}>Дараах</span>
-                </span>
-              )}
-            </Button>
-          )}
+              />
+            );
+          })}
         </div>
+
+        {/* Next / Quiz / Done */}
+        {isLastSlide ? (
+          enrollment?.status === 'completed' || enrollment?.isPassed ? (
+            <Button type="text" icon={<CheckOutlined />} onClick={() => navigate('/')}
+              style={{ color: '#22c55e', width: 48, height: 48, flexShrink: 0 }} />
+          ) : (
+            <Button onClick={handleStartQuiz} disabled={!canProceed}
+              style={{
+                background: canProceed ? '#16a34a' : 'transparent',
+                borderColor: canProceed ? '#16a34a' : '#374151',
+                color: canProceed ? 'white' : '#6b7280',
+                height: 36, padding: '0 14px', borderRadius: 8, fontSize: 13,
+                flexShrink: 0, marginRight: 4
+              }}>
+              {canProceed
+                ? (questions.length > 0 ? 'Шалгалт →' : 'Дуусгах ✓')
+                : <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#2563eb', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 'bold', color: 'white' }}>{timeRemaining}</span>
+                    {questions.length > 0 ? 'Шалгалт' : 'Дуусгах'}
+                  </span>
+              }
+            </Button>
+          )
+        ) : (
+          <Button type="text" onClick={() => handleSlideChange(currentSlide + 1)} disabled={!canProceed}
+            style={{ color: canProceed ? 'white' : '#374151', width: 48, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {canProceed
+              ? <RightOutlined />
+              : <span style={{ width: 24, height: 24, borderRadius: '50%', background: '#2563eb', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 'bold', color: 'white' }}>{timeRemaining}</span>
+            }
+          </Button>
+        )}
       </footer>
 
       {/* Exit Confirm Modal */}
