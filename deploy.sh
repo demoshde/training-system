@@ -4,6 +4,23 @@
 
 set -e
 
+# ─────────────────────────────────────────────────────────────────────────────
+# ⚠️  DOCKER DEPLOY — NOT how production currently runs.
+# The live server (training.outboundlogistic.com) runs on pm2 + host nginx.
+# This Docker stack binds ports 80/443 and WILL conflict with the host nginx,
+# potentially disrupting every site on the server.
+#
+# For production deploys use:   ./deploy.pm2.sh
+# This script is kept only for a fresh, Docker-only environment.
+# To run it intentionally anyway:   FORCE_DOCKER_DEPLOY=1 ./deploy.sh
+# ─────────────────────────────────────────────────────────────────────────────
+if [ "${FORCE_DOCKER_DEPLOY:-0}" != "1" ]; then
+    echo "❌ Docker deploy is disabled by default."
+    echo "   Production runs on pm2 + host nginx — use ./deploy.pm2.sh instead."
+    echo "   To force the Docker deploy anyway: FORCE_DOCKER_DEPLOY=1 ./deploy.sh"
+    exit 1
+fi
+
 echo "🚀 Training System Deployment Script"
 echo "======================================"
 
