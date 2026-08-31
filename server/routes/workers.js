@@ -7,6 +7,21 @@ const { adminAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Keep only valid numeric PVT threshold overrides (empty/invalid => omitted => use global)
+const PVT_THRESHOLD_KEYS = ['meanRtFail','lapseRt','maxLapses','falseStartRt','maxFalseStarts','normalRt'];
+function cleanThresholds(obj) {
+  const out = {};
+  if (obj && typeof obj === 'object') {
+    for (const k of PVT_THRESHOLD_KEYS) {
+      const v = obj[k];
+      if (v === '' || v === null || v === undefined) continue;
+      const n = Number(v);
+      if (Number.isFinite(n) && n >= 0) out[k] = n;
+    }
+  }
+  return out;
+}
+
 // Get all workers
 router.get('/', adminAuth, async (req, res) => {
   try {
@@ -98,7 +113,7 @@ router.get('/:id', adminAuth, async (req, res) => {
 router.post('/', adminAuth, async (req, res) => {
   try {
     const { sapId, firstName, lastName, company, position, birthDate, employmentDate, helmetColor,
-            shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity } = req.body;
+            shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity, pvtThresholds } = req.body;
     
     // Check if SAP ID already exists
     const existingWorker = await Worker.findOne({ sapId });
@@ -112,7 +127,8 @@ router.post('/', adminAuth, async (req, res) => {
     const worker = await Worker.create({
       sapId, firstName, lastName, company: workerCompany,
       position, birthDate: birthDate || undefined, employmentDate: employmentDate || undefined,
-      helmetColor, shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity
+      helmetColor, shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity,
+      pvtThresholds: cleanThresholds(pvtThresholds)
     });
 
     const populatedWorker = await Worker.findById(worker._id)
@@ -135,7 +151,7 @@ router.post('/', adminAuth, async (req, res) => {
 router.put('/:id', adminAuth, async (req, res) => {
   try {
     const { sapId, firstName, lastName, company, position, birthDate, employmentDate, helmetColor, isActive,
-            shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity } = req.body;
+            shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity, pvtThresholds } = req.body;
     
     // Check SAP ID uniqueness
     const existingWorker = await Worker.findOne({ sapId, _id: { $ne: req.params.id } });
@@ -143,11 +159,15 @@ router.put('/:id', adminAuth, async (req, res) => {
       return res.status(400).json({ message: 'Энэ SAP дугаар өөр ажилтанд бүртгэлтэй байна' });
     }
 
+    const update = { sapId, firstName, lastName, company, position,
+        birthDate: birthDate || undefined, employmentDate: employmentDate || undefined,
+        helmetColor, isActive, shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity };
+    // Only touch overrides when the form actually sends them (super admin form)
+    if (pvtThresholds !== undefined) update.pvtThresholds = cleanThresholds(pvtThresholds);
+
     const worker = await Worker.findByIdAndUpdate(
       req.params.id,
-      { sapId, firstName, lastName, company, position,
-        birthDate: birthDate || undefined, employmentDate: employmentDate || undefined,
-        helmetColor, isActive, shiftType, logisticsTrack, convoyConfig, accommodationUnit, roomCapacity },
+      update,
       { new: true }
     ).populate('company');
     

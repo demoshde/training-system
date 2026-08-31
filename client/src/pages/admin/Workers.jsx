@@ -4,7 +4,7 @@ import { adminApi } from '../../api';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import toast from 'react-hot-toast';
 import { 
-  Table, Button, Modal, Form, Input, Select, Space, Tag, Progress, 
+  Table, Button, Modal, Form, Input, InputNumber, Select, Space, Tag, Progress, 
   DatePicker, Typography, Popconfirm, Tooltip, Badge, Spin, theme, Alert, Upload
 } from 'antd';
 import { 
@@ -73,6 +73,7 @@ const Workers = () => {
         shiftMain: worker.shiftType?.startsWith('Цуваа-') ? 'Цуваа' : (worker.shiftType || 'Өдөр'),
         convoyNum: worker.shiftType?.startsWith('Цуваа-') ? parseInt(worker.shiftType.replace('Цуваа-','')) : undefined,
         accommodationUnit: worker.accommodationUnit || '',
+        pvtThresholds: worker.pvtThresholds || {},
       });
     } else {
       setEditingWorker(null);
@@ -810,6 +811,29 @@ const Workers = () => {
               <Input placeholder="Байр, блок, өрөө дугаар" />
             </Form.Item>
           </div>
+
+          {admin?.role === 'super_admin' && (
+            <div style={{ marginTop: 8, paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>
+              <Text strong>PVT хувийн босго (заавал биш)</Text>
+              <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 12 }}>
+                Хоосон бол глобал утгыг ашиглана. Удаан жолоочид тусад нь тохируулна.
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0 16px' }}>
+                {[
+                  ['meanRtFail','Дундаж босго (мс ≥)'],
+                  ['lapseRt','Хоцролт босго (мс ≥)'],
+                  ['maxLapses','Хоцролт дээд тоо'],
+                  ['falseStartRt','Түрүүлсэн босго (мс <)'],
+                  ['maxFalseStarts','Түрүүлсэн дээд тоо'],
+                  ['normalRt','Хэвийн босго (мс <)'],
+                ].map(([k,label]) => (
+                  <Form.Item key={k} name={['pvtThresholds', k]} label={label}>
+                    <InputNumber min={0} style={{ width: '100%' }} placeholder="глобал" />
+                  </Form.Item>
+                ))}
+              </div>
+            </div>
+          )}
 
           <Form.Item style={{ marginBottom: 0, textAlign: 'right', marginTop: 16 }}>
             <Space>
