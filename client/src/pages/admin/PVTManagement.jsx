@@ -34,6 +34,7 @@ export default function PVTManagement() {
   const [settings, setSettings] = useState(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [trend, setTrend] = useState(null);   // { sap, name, tests, loading }
+  const [driverCfg, setDriverCfg] = useState(null);   // { found, form, saving }
   const pollRef  = useRef(null);
   const testsRef = useRef(null);
 
@@ -72,11 +73,29 @@ export default function PVTManagement() {
 
   const openTrend = async (sap, name) => {
     setTrend({ sap, name, tests: [], loading: true });
+    setDriverCfg(null);
     try {
-      const { data } = await pvtAdminApi.get(`/history/${encodeURIComponent(sap)}`);
-      setTrend({ sap, name, tests: data, loading: false });
+      const [histRes, cfgRes] = await Promise.all([
+        pvtAdminApi.get(`/history/${encodeURIComponent(sap)}`),
+        pvtAdminApi.get(`/worker-thresholds/${encodeURIComponent(sap)}`).catch(() => ({ data: { found: false } })),
+      ]);
+      setTrend({ sap, name, tests: histRes.data, loading: false });
+      if (cfgRes.data?.found) setDriverCfg({ found: true, form: { ...cfgRes.data.pvtThresholds }, saving: false });
+      else setDriverCfg({ found: false });
     } catch {
       setTrend({ sap, name, tests: [], loading: false });
+    }
+  };
+
+  const saveDriverCfg = async () => {
+    setDriverCfg(c => ({ ...c, saving: true }));
+    try {
+      const { data } = await pvtAdminApi.put(`/worker-thresholds/${encodeURIComponent(trend.sap)}`, driverCfg.form);
+      setDriverCfg({ found: true, form: { ...data.pvtThresholds }, saving: false });
+      toast.success('Хувийн босго хадгалагдлаа');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Хадгалахад алдаа гарлаа');
+      setDriverCfg(c => ({ ...c, saving: false }));
     }
   };
 
@@ -694,6 +713,42 @@ export default function PVTManagement() {
                   <div><p className="text-gray-400 text-xs uppercase tracking-wide">Дундаж RT</p><p className="text-2xl font-black text-gray-800">{Math.round(trend.tests.reduce((a,t)=>a+(t.stage3?.meanRT||0),0)/trend.tests.length)}<span className="text-sm">мс</span></p></div>
                 </div>
               </>
+            )}
+            {/* Per-driver threshold overrides (super admin) */}
+            {admin?.role==='super_admin' && driverCfg?.found && (
+              <div className="mt-6 pt-5 border-t border-gray-100">
+                <h4 className="text-sm font-bold text-gray-800 mb-1">Хувийн босго тохиргоо</h4>
+                <p className="text-gray-500 text-xs mb-4">Хоосон орхивол глобал утгыг ашиглана. Удаан жолоочид тусад нь тохируулна.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[
+                    ['meanRtFail','Дундаж босго (мс ≥)'],
+                    ['lapseRt','Хоцролт босго (мс ≥)'],
+                    ['maxLapses','Хоцролт дээд тоо'],
+                    ['falseStartRt','Түрүүлсэн босго (мс <)'],
+                    ['maxFalseStarts','Түрүүлсэн дээд тоо'],
+                    ['normalRt','Хэвийн босго (мс <)'],
+                  ].map(([k,label]) => (
+                    <div key={k}>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                      <input type="number" min="0"
+                        value={driverCfg.form?.[k] ?? ''}
+                        placeholder={settings ? `${settings[k]} (глобал)` : ''}
+                        onChange={e => setDriverCfg(c => ({ ...c, form: { ...c.form, [k]: e.target.value } }))}
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button onClick={saveDriverCfg} disabled={driverCfg.saving}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50">
+                    {driverCfg.saving ? 'Хадгалж байна...' : 'Хувийн босго хадгалах'}
+                  </button>
+                  <button onClick={() => setDriverCfg(c => ({ ...c, form: {} }))}
+                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors">
+                    Цэвэрлэх (глобал болгох)
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>

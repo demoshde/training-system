@@ -15,7 +15,16 @@ const workerSchema = new mongoose.Schema({
   logisticsTrack:    { type: String, enum: ['Short Haul Driver', 'Convoy Driver'], default: 'Short Haul Driver' },
   convoyConfig:      { type: String, default: '' },
   accommodationUnit: { type: String, default: '' },
-  roomCapacity:      { type: String, enum: ['Single', '2-person', '3+ shared'], default: 'Single' }
+  roomCapacity:      { type: String, enum: ['Single', '2-person', '3+ shared'], default: 'Single' },
+  // Optional per-driver PVT threshold overrides (unset fields fall back to global settings)
+  pvtThresholds: {
+    meanRtFail:     { type: Number },
+    lapseRt:        { type: Number },
+    maxLapses:      { type: Number },
+    falseStartRt:   { type: Number },
+    maxFalseStarts: { type: Number },
+    normalRt:       { type: Number },
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Worker', workerSchema);

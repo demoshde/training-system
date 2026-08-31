@@ -85,12 +85,13 @@ export default function PVTTestArena({ guest = false }) {
     if (!guest && !worker) navigate('/login');
   }, [guest, worker, navigate]);
 
-  // Load admin-configured scoring thresholds (falls back to defaults)
+  // Load scoring thresholds — per-driver (by SAP) if available, else global/defaults
   useEffect(() => {
-    pvtGuestApi.get('/settings')
+    const sap = guest ? guestSap : worker?.sapId;
+    pvtGuestApi.get('/settings', { params: sap ? { sapId: sap } : {} })
       .then(({ data }) => setThresholds(prev => ({ ...prev, ...data })))
       .catch(() => {});
-  }, []);
+  }, [guest, guestSap, worker]);
 
   // Cleanup on unmount
   useEffect(() => () => {

@@ -11,7 +11,35 @@ function computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts, s) {
   if ((!s1Pass && !s2Pass) || meanRT >= s.meanRtFail || lapses >= s.maxLapses || falseStarts >= s.maxFalseStarts) return 'HIGH_RISK';
   return 'LOW_RISK';
 }
+const THRESHOLD_KEYS = ['meanRtFail','lapseRt','maxLapses','falseStartRt','maxFalseStarts','normalRt'];
 
+// Merge global settings with a worker's optional per-driver overrides
+function effectiveThresholds(global, worker) {
+  const eff = {};
+  for (const k of THRESHOLD_KEYS) eff[k] = global[k];
+  const ov = worker && worker.pvtThresholds;
+  if (ov) for (const k of THRESHOLD_KEYS) if (ov[k] != null) eff[k] = ov[k];
+  return eff;
+}
+
+// Authoritatively recompute stage-3 aggregates from the raw trials using thresholds
+function scoreStage3(stage3, thr) {
+  const trials = Array.isArray(stage3.trials) ? stage3.trials : [];
+  const scored = trials.map(t => {
+    const rt = Number(t.reactionTime) || 0;
+    if (rt <= 0) return { reactionTime: 0, isFalseStart: true, isLapse: false }; // clicked before green
+    const isFalseStart = rt < thr.falseStartRt;
+    const isLapse = !isFalseStart && rt >= thr.lapseRt;
+    return { reactionTime: Math.round(rt), isFalseStart, isLapse };
+  });
+  const valid = scored.filter(t => !t.isFalseStart && t.reactionTime > 0).map(t => t.reactionTime);
+  const meanRT = valid.length ? Math.round(valid.reduce((a,b)=>a+b,0)/valid.length) : 999;
+  const s = [...valid].sort((a,b)=>a-b);
+  const medianRT = s.length ? Math.round(s.length % 2 ? s[(s.length-1)/2] : (s[s.length/2-1]+s[s.length/2])/2) : 999;
+  const lapses = scored.filter(t => t.isLapse).length;
+  const falseStarts = scored.filter(t => t.isFalseStart).length;
+  return { trials: scored, meanRT, medianRT, lapses, falseStarts };
+}
 // ── POST /api/pvt/tests  — worker submits their own test ─────────────────────
 router.post('/tests', workerAuth, async (req, res) => {
   try {
@@ -21,9 +49,10 @@ router.post('/tests', workerAuth, async (req, res) => {
       return res.status(400).json({ message: 'Missing stage data' });
     }
 
-    const { meanRT, lapses, falseStarts } = stage3;
     const settings = await PvtSettings.getSingleton();
-    const overallStatus = computeStatus(stage1.passed, stage2.passed, meanRT, lapses, falseStarts, settings);
+    const thr = effectiveThresholds(settings, req.worker);
+    const scored = scoreStage3(stage3, thr);
+    const overallStatus = computeStatus(stage1.passed, stage2.passed, scored.meanRT, scored.lapses, scored.falseStarts, thr);
     const companyId = req.worker.company?._id ?? req.worker.company;
     if (!companyId) return res.status(400).json({ message: 'Worker has no company assigned.' });
 
@@ -33,7 +62,7 @@ router.post('/tests', workerAuth, async (req, res) => {
       driverName: `${req.worker.firstName} ${req.worker.lastName}`,
       driverSap:  req.worker.sapId,
       testShift:  testShift || req.worker.shiftType || '',
-      stage1, stage2, stage3, overallStatus
+      stage1, stage2, stage3: scored, overallStatus
     });
 
     if (overallStatus === 'HIGH_RISK') {
@@ -60,13 +89,14 @@ router.post('/tests/guest', async (req, res) => {
     if (!sapId || !sapId.trim()) return res.status(400).json({ message: 'SAP дугаар шаардлагатай' });
     if (!stage1 || !stage2 || !stage3) return res.status(400).json({ message: 'Missing stage data' });
 
-    const { meanRT, lapses, falseStarts } = stage3;
-    const settings = await PvtSettings.getSingleton();
-    const overallStatus = computeStatus(stage1.passed, stage2.passed, meanRT, lapses, falseStarts, settings);
-
     // Attach worker/company if this SAP happens to be registered
     const worker = await Worker.findOne({ sapId: sapId.trim() }).populate('company');
     const companyId = worker ? (worker.company?._id ?? worker.company) : undefined;
+
+    const settings = await PvtSettings.getSingleton();
+    const thr = effectiveThresholds(settings, worker);
+    const scored = scoreStage3(stage3, thr);
+    const overallStatus = computeStatus(stage1.passed, stage2.passed, scored.meanRT, scored.lapses, scored.falseStarts, thr);
 
     const test = await PVTTest.create({
       driver:     worker?._id,
@@ -74,7 +104,7 @@ router.post('/tests/guest', async (req, res) => {
       driverName: worker ? `${worker.firstName} ${worker.lastName}` : '',
       driverSap:  sapId.trim(),
       testShift:  testShift || worker?.shiftType || '',
-      stage1, stage2, stage3, overallStatus
+      stage1, stage2, stage3: scored, overallStatus
     });
 
     if (overallStatus === 'HIGH_RISK' && companyId) {
@@ -214,15 +244,50 @@ router.get('/export', adminAuth, async (req, res) => {
   } catch { res.status(500).json({ message: 'Server error' }); }
 });
 
-// ── GET /api/pvt/settings  — public (test client needs thresholds) ───────────
+// ── GET /api/pvt/settings  — public; ?sapId returns that driver's effective thresholds ──
 router.get('/settings', async (req, res) => {
   try {
-    const s = await PvtSettings.getSingleton();
-    res.json({
-      meanRtFail: s.meanRtFail, lapseRt: s.lapseRt, maxLapses: s.maxLapses,
-      falseStartRt: s.falseStartRt, maxFalseStarts: s.maxFalseStarts, normalRt: s.normalRt
-    });
+    const g = await PvtSettings.getSingleton();
+    let eff = {}; for (const k of THRESHOLD_KEYS) eff[k] = g[k];
+    if (req.query.sapId) {
+      const w = await Worker.findOne({ sapId: String(req.query.sapId).trim() });
+      if (w) eff = effectiveThresholds(g, w);
+    }
+    res.json(eff);
   } catch { res.status(500).json({ message: 'Server error' }); }
+});
+
+// ── GET /api/pvt/worker-thresholds/:sapId  — a driver's override values ───────
+router.get('/worker-thresholds/:sapId', adminAuth, async (req, res) => {
+  try {
+    const w = await Worker.findOne({ sapId: req.params.sapId });
+    if (!w) return res.json({ found: false });
+    if (req.admin.role !== 'super_admin') {
+      const cid = (req.admin.company?._id || req.admin.company)?.toString();
+      if ((w.company?.toString?.() || '') !== cid) return res.status(403).json({ message: 'Access denied' });
+    }
+    res.json({ found: true, name: `${w.firstName} ${w.lastName}`, pvtThresholds: w.pvtThresholds || {} });
+  } catch { res.status(500).json({ message: 'Server error' }); }
+});
+
+// ── PUT /api/pvt/worker-thresholds/:sapId  — super admin sets per-driver overrides ──
+router.put('/worker-thresholds/:sapId', adminAuth, superAdminOnly, async (req, res) => {
+  try {
+    const w = await Worker.findOne({ sapId: req.params.sapId });
+    if (!w) return res.status(404).json({ message: 'Ажилтан олдсонгүй' });
+    const ov = {};
+    for (const k of THRESHOLD_KEYS) {
+      const v = req.body[k];
+      if (v === '' || v === null || v === undefined) continue; // empty => use global
+      const n = Number(v);
+      if (!Number.isFinite(n) || n < 0) return res.status(400).json({ message: `Буруу утга: ${k}` });
+      ov[k] = n;
+    }
+    w.pvtThresholds = ov;
+    w.markModified('pvtThresholds');
+    await w.save();
+    res.json({ found: true, pvtThresholds: w.pvtThresholds });
+  } catch (err) { res.status(500).json({ message: err.message || 'Server error' }); }
 });
 
 // ── PUT /api/pvt/settings  — super admin updates thresholds ──────────────────
