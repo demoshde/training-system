@@ -229,7 +229,7 @@ const Training = () => {
       }
     } catch (error) {
       toast.error('Сургалтын мэдээлэл татахад алдаа гарлаа');
-      navigate('/');
+      navigate('/trainings');
     } finally {
       setLoading(false);
     }
@@ -389,7 +389,7 @@ const Training = () => {
                 Гэрчилгээ харах
               </Button>
               <Button 
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/trainings')}
                 style={{ fontSize: 'clamp(12px, 2.5vw, 14px)' }}
               >
                 Нүүр хуудас
@@ -546,7 +546,7 @@ const Training = () => {
                     type="link"
                     onClick={() => {
                       if (!training.slides || training.slides.length === 0) {
-                        navigate('/');
+                        navigate('/trainings');
                       } else {
                         setShowQuiz(false);
                       }
@@ -586,7 +586,7 @@ const Training = () => {
     setIsFullscreen(false);
     screen.orientation?.unlock?.();
     if (isCompleted) {
-      navigate('/');
+      navigate('/trainings');
     } else {
       setShowExitConfirm(true);
     }
@@ -841,7 +841,7 @@ const Training = () => {
         {/* Next / Quiz / Done */}
         {isLastSlide ? (
           enrollment?.status === 'completed' || enrollment?.isPassed ? (
-            <Button type="text" icon={<CheckOutlined />} onClick={() => navigate('/')}
+            <Button type="text" icon={<CheckOutlined />} onClick={() => navigate('/trainings')}
               style={{ color: '#22c55e', width: 48, height: 48, flexShrink: 0 }} />
           ) : (
             <Button onClick={handleStartQuiz} disabled={!canProceed}
@@ -876,7 +876,7 @@ const Training = () => {
       <Modal
         open={showExitConfirm}
         onCancel={() => setShowExitConfirm(false)}
-        onOk={() => navigate('/')}
+        onOk={() => navigate('/trainings')}
         title="Сургалтаас гарах"
         okText="Гарах"
         cancelText="Үргэлжлүүлэх"

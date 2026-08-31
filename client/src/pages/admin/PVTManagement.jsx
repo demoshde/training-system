@@ -13,10 +13,10 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 const STATUS_BADGE = {
   LOW_RISK:      'bg-emerald-100 text-emerald-700 border-emerald-300',
-  MODERATE_RISK: 'bg-amber-100  text-amber-700  border-amber-300',
+  MODERATE_RISK: 'bg-emerald-100 text-emerald-700 border-emerald-300', // legacy → treated as pass
   HIGH_RISK:     'bg-red-100    text-red-700    border-red-300',
 };
-const STATUS_LABEL = { LOW_RISK:'ТЭНЦЭНЭ', MODERATE_RISK:'ХЯНАЛТТАЙ ТЭНЦЭНЭ', HIGH_RISK:'ТЭНЦЭХГҮЙ' };
+const STATUS_LABEL = { LOW_RISK:'ТЭНЦСЭН', MODERATE_RISK:'ТЭНЦСЭН', HIGH_RISK:'ТЭНЦЭХГҮЙ' };
 
 export default function PVTManagement() {
   const { admin } = useAdminAuth();
@@ -68,7 +68,21 @@ export default function PVTManagement() {
     setAlerts([]);
   };
 
-  const exportCSV = () => window.open('/api/pvt/export', '_blank');
+  const exportCSV = async () => {
+    try {
+      const { data } = await pvtAdminApi.get('/export', { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob(['\uFEFF', data], { type: 'text/csv;charset=utf-8;' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pvt-report.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('CSV татахад алдаа гарлаа');
+    }
+  };
 
   const chartData = stats?.last14Days ? {
     labels: stats.last14Days.map(d => d._id.slice(5)),
@@ -152,21 +166,28 @@ export default function PVTManagement() {
       {/* HIGH RISK alert banner */}
       {alerts.length > 0 && (
         <div className="mb-4 bg-red-50 border border-red-300 rounded-xl p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 space-y-1">
-              {alerts.map(a => (
-                <div key={a._id} className="flex items-center gap-2">
-                  <span className="animate-pulse text-base">🚨</span>
-                  <p className="text-red-700 text-sm font-semibold">
-                    🚨 АНХААРУУЛГА: Жолооч {a.driverName} (SAP: {a.driverSap}) — АЖИЛД ТЭНЦЭХГҮЙ. Яаралтай арга хэмжээ авна уу.
-                  </p>
-                  <button onClick={() => dismissAlert(a._id)} className="ml-auto text-red-400 hover:text-red-700">✕</button>
-                </div>
-              ))}
+          {/* Header: count + dismiss all */}
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="animate-pulse text-base">🚨</span>
+              <p className="text-red-700 text-sm font-bold">
+                АНХААРУУЛГА · {alerts.length} жолооч АЖИЛД ТЭНЦЭХГҮЙ
+              </p>
             </div>
             {alerts.length > 1 && (
               <button onClick={dismissAll} className="text-red-500 hover:text-red-700 text-xs font-medium flex-shrink-0">Бүгдийг хаах</button>
             )}
+          </div>
+          {/* Scrollable alert list (prevents unbounded stacking) */}
+          <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+            {alerts.map(a => (
+              <div key={a._id} className="flex items-center gap-2 bg-white/60 border border-red-200 rounded-lg px-3 py-1.5">
+                <p className="text-red-700 text-sm font-semibold flex-1 min-w-0 truncate">
+                  Жолооч {a.driverName} (SAP: {a.driverSap}) — АЖИЛД ТЭНЦЭХГҮЙ. Яаралтай арга хэмжээ авна уу.
+                </p>
+                <button onClick={() => dismissAlert(a._id)} className="text-red-400 hover:text-red-700 flex-shrink-0">✕</button>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -213,7 +234,7 @@ export default function PVTManagement() {
                     <p className="text-gray-800 text-sm font-medium">
                       {t.driver?.firstName
                         ? `${t.driver.firstName} ${t.driver.lastName}`
-                        : t.driverName || '—'}
+                        : t.driverName || 'Зочин'}
                     </p>
                     <p className="text-gray-400 text-xs">{t.driver?.sapId || t.driverSap}</p>
                   </div>
@@ -328,7 +349,7 @@ export default function PVTManagement() {
                       </td>
                       <td className="px-4 py-2.5">
                         <p className="text-gray-800 font-medium text-sm">
-                          {r.driver?.firstName ? `${r.driver.firstName} ${r.driver.lastName}` : r.driverName || '—'}
+                          {r.driver?.firstName ? `${r.driver.firstName} ${r.driver.lastName}` : r.driverName || 'Зочин'}
                         </p>
                         <p className="text-gray-400 text-xs">{r.driver?.sapId || r.driverSap}</p>
                       </td>
@@ -372,9 +393,8 @@ export default function PVTManagement() {
       {/* ANALYTICS */}
       {tab==='analytics' && (() => {
         const total   = tests.length;
-        const lr      = tests.filter(t => t.overallStatus === 'LOW_RISK').length;
-        const mr      = tests.filter(t => t.overallStatus === 'MODERATE_RISK').length;
         const hr      = tests.filter(t => t.overallStatus === 'HIGH_RISK').length;
+        const lr      = total - hr;   // pass = everything that is not high risk
         const passRate = total ? Math.round(lr / total * 100) : 0;
         const validRTs = tests.map(t => t.stage3?.meanRT).filter(v => v > 0);
         const avgRT    = validRTs.length ? Math.round(validRTs.reduce((a,b)=>a+b,0)/validRTs.length) : 0;
@@ -388,8 +408,7 @@ export default function PVTManagement() {
           const rts = st.map(t=>t.stage3?.meanRT).filter(v=>v>0);
           return {
             shift: s, count: st.length,
-            lr: st.filter(t=>t.overallStatus==='LOW_RISK').length,
-            mr: st.filter(t=>t.overallStatus==='MODERATE_RISK').length,
+            lr: st.filter(t=>t.overallStatus!=='HIGH_RISK').length,
             hr: st.filter(t=>t.overallStatus==='HIGH_RISK').length,
             avgRT: rts.length ? Math.round(rts.reduce((a,b)=>a+b,0)/rts.length) : 0,
           };
@@ -437,11 +456,10 @@ export default function PVTManagement() {
             </div>
 
             {/* Risk breakdown */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               {[
-                { label: 'АЖИЛД ТЭНЦЭНЭ', count: lr, pct: total?Math.round(lr/total*100):0, color:'bg-green-100 text-green-700 border-green-300' },
-                { label: 'ХЯНАЛТТАЙ ТЭНЦЭНЭ', count: mr, pct: total?Math.round(mr/total*100):0, color:'bg-amber-100 text-amber-700 border-amber-300' },
-                { label: 'АЖИЛД ТЭНЦЭХГҮЙ', count: hr, pct: total?Math.round(hr/total*100):0, color:'bg-red-100 text-red-700 border-red-300' },
+                { label: 'ТЭНЦСЭН', count: lr, pct: total?Math.round(lr/total*100):0, color:'bg-green-100 text-green-700 border-green-300' },
+                { label: 'ТЭНЦЭХГҮЙ', count: hr, pct: total?Math.round(hr/total*100):0, color:'bg-red-100 text-red-700 border-red-300' },
               ].map(s => (
                 <div key={s.label} className={`rounded-xl border p-4 text-center ${s.color}`}>
                   <p className="text-xs font-semibold uppercase tracking-wide mb-2">{s.label}</p>
@@ -471,7 +489,7 @@ export default function PVTManagement() {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      {['Ээлж','Нийт','Тэнцсэн','Хяналттай','Тэнцэхгүй','Тэнцсэн %','Дундаж RT'].map(h => (
+                      {['Ээлж','Нийт','Тэнцсэн','Тэнцэхгүй','Тэнцсэн %','Дундаж RT'].map(h => (
                         <th key={h} className="text-left text-gray-500 text-xs tracking-wide font-semibold px-4 py-2.5">{h}</th>
                       ))}
                     </tr>
@@ -484,7 +502,6 @@ export default function PVTManagement() {
                           <td className="px-4 py-2.5 font-medium text-gray-800">{s.shift}</td>
                           <td className="px-4 py-2.5 text-gray-600">{s.count}</td>
                           <td className="px-4 py-2.5 text-green-600 font-bold">{s.lr}</td>
-                          <td className="px-4 py-2.5 text-amber-600 font-bold">{s.mr}</td>
                           <td className="px-4 py-2.5 text-red-600 font-bold">{s.hr}</td>
                           <td className="px-4 py-2.5">
                             <div className="flex items-center gap-2">

@@ -3,12 +3,12 @@ const mongoose = require('mongoose');
 const trialSchema = new mongoose.Schema({
   reactionTime: Number,  // ms — null if false start during armed phase
   isFalseStart: Boolean, // clicked before green OR rt < 100ms
-  isLapse:      Boolean  // rt >= 500ms
+  isLapse:      Boolean  // rt >= 560ms
 }, { _id: false });
 
 const pvtTestSchema = new mongoose.Schema({
-  driver:  { type: mongoose.Schema.Types.ObjectId, ref: 'Worker', required: true },
-  company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company',   required: true },
+  driver:  { type: mongoose.Schema.Types.ObjectId, ref: 'Worker' },
+  company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
   // Denormalized for reliable display even if worker is deleted
   driverName: { type: String, default: '' },
   driverSap:  { type: String, default: '' },
@@ -34,7 +34,7 @@ const pvtTestSchema = new mongoose.Schema({
 
   overallStatus: {
     type: String,
-    enum: ['LOW_RISK', 'MODERATE_RISK', 'HIGH_RISK'],
+    enum: ['LOW_RISK', 'HIGH_RISK'],
     required: true
   },
   alertDispatched: { type: Boolean, default: false },

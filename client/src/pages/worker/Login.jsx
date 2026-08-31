@@ -85,6 +85,24 @@ const Login = () => {
             {loading ? 'Нэвтэрч байна...' : 'Нэвтрэх'}
           </button>
         </form>
+
+        {/* Registration-free quick PVT test */}
+        <div className="w-full max-w-sm mt-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-gray-400 text-xs">эсвэл</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/pvt/quick')}
+            className="w-full flex items-center justify-center gap-2 border-2 border-emerald-500 text-emerald-700 py-3.5 rounded-xl hover:bg-emerald-50 transition font-semibold text-lg"
+          >
+            <ShieldCheckIcon className="w-5 h-5" />
+            PVT тест шууд өгөх
+          </button>
+          <p className="text-gray-400 text-xs text-center mt-2">Бүртгэлгүйгээр, зөвхөн SAP дугаараар</p>
+        </div>
       </div>
 
       {/* Bottom Navigation */}

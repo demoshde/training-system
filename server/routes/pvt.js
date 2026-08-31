@@ -5,11 +5,10 @@ const PVTTest = require('../models/PVTTest');
 const PVTAlert= require('../models/PVTAlert');
 const { adminAuth, workerAuth } = require('../middleware/auth');
 
-// ─── Scoring helper ───────────────────────────────────────────────────────────
+// ─── Scoring helper ────────────────────────────────────────────
 function computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts) {
-  if ((!s1Pass && !s2Pass) || meanRT >= 500 || lapses >= 3 || falseStarts >= 2) return 'HIGH_RISK';
-  if (s1Pass && s2Pass && meanRT < 350 && lapses === 0 && falseStarts === 0)     return 'LOW_RISK';
-  return 'MODERATE_RISK';
+  if ((!s1Pass && !s2Pass) || meanRT >= 560 || lapses >= 3 || falseStarts >= 2) return 'HIGH_RISK';
+  return 'LOW_RISK';
 }
 
 // ── POST /api/pvt/tests  — worker submits their own test ─────────────────────
@@ -48,6 +47,46 @@ router.post('/tests', workerAuth, async (req, res) => {
     res.status(201).json({ testId: test._id, overallStatus });
   } catch (err) {
     console.error('PVT test submission error:', err.message, err.stack);
+    res.status(500).json({ message: err.message || 'Server error' });
+  }
+});
+
+// ── POST /api/pvt/tests/guest  — anyone can take the test with just a SAP number ──
+router.post('/tests/guest', async (req, res) => {
+  try {
+    const { sapId, stage1, stage2, stage3, testShift } = req.body;
+    if (!sapId || !sapId.trim()) return res.status(400).json({ message: 'SAP дугаар шаардлагатай' });
+    if (!stage1 || !stage2 || !stage3) return res.status(400).json({ message: 'Missing stage data' });
+
+    const { meanRT, lapses, falseStarts } = stage3;
+    const overallStatus = computeStatus(stage1.passed, stage2.passed, meanRT, lapses, falseStarts);
+
+    // Attach worker/company if this SAP happens to be registered
+    const worker = await Worker.findOne({ sapId: sapId.trim() }).populate('company');
+    const companyId = worker ? (worker.company?._id ?? worker.company) : undefined;
+
+    const test = await PVTTest.create({
+      driver:     worker?._id,
+      company:    companyId,
+      driverName: worker ? `${worker.firstName} ${worker.lastName}` : '',
+      driverSap:  sapId.trim(),
+      testShift:  testShift || worker?.shiftType || '',
+      stage1, stage2, stage3, overallStatus
+    });
+
+    if (overallStatus === 'HIGH_RISK' && companyId) {
+      await PVTAlert.create({
+        company:    companyId,
+        driver:     worker._id,
+        test:       test._id,
+        driverName: `${worker.firstName} ${worker.lastName}`,
+        driverSap:  sapId.trim()
+      });
+    }
+
+    res.status(201).json({ testId: test._id, overallStatus });
+  } catch (err) {
+    console.error('Guest PVT test submission error:', err.message, err.stack);
     res.status(500).json({ message: err.message || 'Server error' });
   }
 });

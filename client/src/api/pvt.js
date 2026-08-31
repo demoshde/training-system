@@ -8,6 +8,9 @@ pvtApi.interceptors.request.use((config) => {
   return config;
 });
 
+// Guest PVT calls — no authentication (SAP number only)
+export const pvtGuestApi = axios.create({ baseURL: '/api/pvt' });
+
 // Admin-side PVT calls — uses existing admin token
 export const pvtAdminApi = axios.create({ baseURL: '/api/pvt' });
 pvtAdminApi.interceptors.request.use((config) => {

@@ -10,6 +10,7 @@ import PVTManagement from './pages/admin/PVTManagement';
 
 // Worker pages
 import WorkerLogin from './pages/worker/Login';
+import WorkerHome from './pages/worker/Home';
 import WorkerDashboard from './pages/worker/Dashboard';
 import Training from './pages/worker/Training';
 import Certificate from './pages/worker/Certificate';
@@ -48,6 +49,9 @@ function App() {
             </WorkerProtectedRoute>
           } />
 
+          {/* PVT quick test: no account needed, SAP number only */}
+          <Route path="/pvt/quick" element={<PVTTestArena guest />} />
+
           <Route path="/admin/pvt" element={
             <AdminProtectedRoute>
               <PVTManagement />
@@ -60,6 +64,11 @@ function App() {
           {/* Worker routes */}
           <Route path="/login" element={<WorkerLogin />} />
           <Route path="/" element={
+            <WorkerProtectedRoute>
+              <WorkerHome />
+            </WorkerProtectedRoute>
+          } />
+          <Route path="/trainings" element={
             <WorkerProtectedRoute>
               <WorkerDashboard />
             </WorkerProtectedRoute>

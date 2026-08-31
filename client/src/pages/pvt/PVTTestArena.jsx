@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { pvtApi } from '../../api/pvt';
+import { pvtApi, pvtGuestApi } from '../../api/pvt';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const rand6 = () => Array.from({length:6}, () => Math.floor(Math.random()*10)).join('');
@@ -15,34 +15,39 @@ const median = (arr) => {
   const m = Math.floor(s.length/2);
   return s.length%2===0 ? (s[m-1]+s[m])/2 : s[m];
 };
+const fmtDateTime = (d) => {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())}  ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
 function computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts) {
-  if ((!s1Pass && !s2Pass) || meanRT >= 500 || lapses >= 3 || falseStarts >= 2) return 'HIGH_RISK';
-  if (s1Pass && s2Pass && meanRT < 350 && lapses === 0 && falseStarts === 0) return 'LOW_RISK';
-  return 'MODERATE_RISK';
+  if ((!s1Pass && !s2Pass) || meanRT >= 560 || lapses >= 3 || falseStarts >= 2) return 'HIGH_RISK';
+  return 'LOW_RISK';
 }
 const TOTAL_TRIALS = 10;
 
-// ─── Status UI config ────────────────────────────────────────────────────────
+// ─── Status UI config ──────────────────────────────────────────
 const statusConfig = {
-  LOW_RISK:      { label:'АЖИЛД ТЭНЦЭНЭ',          color:'text-emerald-400', bg:'bg-emerald-500/10', border:'border-emerald-500/40', badge:'bg-emerald-600' },
-  MODERATE_RISK: { label:'ХЯНАЛТТАЙ ТЭНЦЭНЭ',    color:'text-amber-400',   bg:'bg-amber-500/10',   border:'border-amber-500/40',   badge:'bg-amber-600' },
-  HIGH_RISK:     { label:'АЖИЛД ТЭНЦЭХГҮЙ',      color:'text-red-400',     bg:'bg-red-500/10',     border:'border-red-500/40',     badge:'bg-red-600' },
+  LOW_RISK:      { label:'ТЭНЦСЭН',      color:'text-emerald-400', bg:'bg-emerald-500/10', border:'border-emerald-500/40', badge:'bg-emerald-600' },
+  HIGH_RISK:     { label:'ТЭНЦЭХГҮЙ',    color:'text-red-400',     bg:'bg-red-500/10',     border:'border-red-500/40',     badge:'bg-red-600' },
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
-export default function PVTTestArena() {
+export default function PVTTestArena({ guest = false }) {
   const navigate = useNavigate();
   const { worker, logout } = useAuth();
 
-  // Derive display names from existing worker object
-  const driverName  = worker ? `${worker.firstName} ${worker.lastName}` : '';
-  const companyName = worker?.company?.name || '';
+  // Guest mode: person takes the test with only a SAP number, no account needed
+  const [guestSap, setGuestSap] = useState('');
 
-  // stage: 'welcome' | 'stage1_show' | 'stage1_input' | 'stage1_result'
+  // Derive display names from worker (registered) or the entered SAP (guest)
+  const driverName  = guest ? (guestSap ? `SAP: ${guestSap}` : '') : (worker ? `${worker.firstName} ${worker.lastName}` : '');
+  const companyName = guest ? '' : (worker?.company?.name || '');
+
+  // stage: 'sap_entry' | 'shift_select' | 'welcome' | 'stage1_show' | 'stage1_input' | 'stage1_result'
   //      | 'stage2_show' | 'stage2_input' | 'stage2_result'
   //      | 'stage3_idle' | 'stage3_armed' | 'stage3_running' | 'stage3_recovery' | 'stage3_done'
   //      | 'final_results' | 'submitted'
-  const [stage,   setStage]   = useState('shift_select');
+  const [stage,   setStage]   = useState(guest ? 'sap_entry' : 'shift_select');
   const [testShift, setTestShift]   = useState('');
   const [shiftMain, setShiftMain]   = useState('');   // Өдөр | Шөнө | Цуваа
   const [countdown, setCd]    = useState(5);
@@ -65,6 +70,7 @@ export default function PVTTestArena() {
 
   // Final
   const [finalStatus, setFinalStatus] = useState(null);
+  const [completedAt, setCompletedAt] = useState(null);
   const [submitting,  setSubmitting]  = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -72,10 +78,10 @@ export default function PVTTestArena() {
   const startRef   = useRef(null); // performance.now() when green shows
   const cdRef      = useRef(null);
 
-  // Guard: redirect if not logged in as worker
+  // Guard: redirect if not logged in as worker (skip in guest mode)
   useEffect(() => {
-    if (!worker) navigate('/login');
-  }, [worker, navigate]);
+    if (!guest && !worker) navigate('/login');
+  }, [guest, worker, navigate]);
 
   // Cleanup on unmount
   useEffect(() => () => {
@@ -153,7 +159,7 @@ export default function PVTTestArena() {
     } else if (stage === 'stage3_running') {
       const rt = now - startRef.current;
       const isFalseStart = rt < 100;
-      const isLapse = rt >= 500;
+      const isLapse = rt >= 560;
       const newTrial = { rt: Math.round(rt), isFalseStart, isLapse };
       const updated = [...currentTrials, newTrial];
       setTrials(updated);
@@ -183,6 +189,7 @@ export default function PVTTestArena() {
     setPvtStats(stats);
     const status = computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts);
     setFinalStatus(status);
+    setCompletedAt(new Date());
     setStage('final_results');
     // Auto-submit — pass all values directly to avoid stale closure issues
     doSubmit(s1Digit, s1Input, s1Pass, s2Digit, s2Input, s2Pass, finalTrials, stats);
@@ -192,7 +199,7 @@ export default function PVTTestArena() {
   async function doSubmit(sd1, si1, p1, sd2, si2, p2, finalTrials, stats) {
     setSubmitting(true); setSubmitError('');
     try {
-      await pvtApi.post('/tests', {
+      const payload = {
         stage1: { shownSequence: sd1, enteredSequence: si1, passed: p1 },
         stage2: { shownNumber:   sd2, enteredSequence: si2, passed: p2 },
         stage3: {
@@ -204,7 +211,12 @@ export default function PVTTestArena() {
           ...stats
         },
         testShift
-      });
+      };
+      if (guest) {
+        await pvtGuestApi.post('/tests/guest', { ...payload, sapId: guestSap });
+      } else {
+        await pvtApi.post('/tests', payload);
+      }
       setStage('submitted');
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Unknown error';
@@ -223,63 +235,103 @@ export default function PVTTestArena() {
   // ─── RENDER ───────────────────────────────────────────────────────────────
   return (
     <div
-      className="min-h-screen bg-gray-950 flex flex-col"
+      className="min-h-screen flex flex-col bg-[#0b0f14] bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.08),_transparent_55%)] text-gray-100"
       onClick={['stage3_armed','stage3_running'].includes(stage) ? () => handlePVTClick(trialsRef.current) : undefined}
     >
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-900">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-center">
-            <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-14 sm:h-16 border-b border-white/5 bg-gray-900/60 backdrop-blur-md sticky top-0 z-10">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 bg-emerald-500/15 border border-emerald-500/30 rounded-xl flex items-center justify-center">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
             </svg>
           </div>
-          <span className="text-white font-semibold text-sm">FleetGuard PVT</span>
+          <div className="leading-tight min-w-0">
+            <span className="block text-white font-semibold text-sm sm:text-base tracking-tight truncate">FleetGuard PVT</span>
+            <span className="hidden sm:block text-gray-500 text-xs">Сэргэг байдлын шалгалт</span>
+          </div>
         </div>
-        <div className="text-right">
-        <p className="text-white text-sm font-medium">{driverName}</p>
-              <p className="text-emerald-400 text-xs">{companyName}</p>
+        <div className="text-right min-w-0">
+          <p className="text-white text-sm sm:text-base font-medium truncate">{driverName}</p>
+          <p className="text-emerald-400 text-xs sm:text-sm truncate">{companyName}</p>
         </div>
       </div>
 
-      {/* Stage progress pills */}
-      <div className="flex justify-center gap-3 py-4 bg-gray-900 border-b border-gray-800">
-        {['Санах ойн шалгалт','Эрэмбэлэлт','Үйлдэл хийх хурд'].map((lbl, i) => {
-          const stageNums  = ['stage1', 'stage2', 'stage3'];
-          const isCurrent  = stage.startsWith(stageNums[i]);
-          const isDone     = (i===0 && (stage.startsWith('stage2')||stage.startsWith('stage3')||stage==='final_results'||stage==='submitted'))
-                           || (i===1 && (stage.startsWith('stage3')||stage==='final_results'||stage==='submitted'))
-                           || (i===2 && (stage==='final_results'||stage==='submitted'));
-          return (
-            <div key={i} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all
-              ${isCurrent ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300'
-              : isDone    ? 'bg-gray-800 border-gray-700 text-gray-400'
-              :             'bg-gray-900 border-gray-800 text-gray-600'}`}>
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold
-                ${isCurrent ? 'bg-emerald-500 text-white'
-                : isDone    ? 'bg-gray-600 text-gray-300'
-                :             'bg-gray-800 text-gray-600'}`}>
-                {isDone ? '✓' : i+1}
-              </span>
-              {lbl}
-            </div>
-          );
-        })}
+      {/* Stage progress stepper */}
+      <div className="flex justify-center px-4 py-5 sm:py-6 bg-gray-900/30 border-b border-white/5">
+        <div className="flex items-center w-full max-w-2xl">
+          {['Санах ой','Эрэмбэлэлт','Хурд'].map((lbl, i) => {
+            const stageNums  = ['stage1', 'stage2', 'stage3'];
+            const isCurrent  = stage.startsWith(stageNums[i]);
+            const isDone     = (i===0 && (stage.startsWith('stage2')||stage.startsWith('stage3')||stage==='final_results'||stage==='submitted'))
+                             || (i===1 && (stage.startsWith('stage3')||stage==='final_results'||stage==='submitted'))
+                             || (i===2 && (stage==='final_results'||stage==='submitted'));
+            return (
+              <div key={i} className="flex items-center flex-1 last:flex-none">
+                <div className="flex flex-col items-center gap-2">
+                  <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ring-4
+                    ${isCurrent ? 'bg-emerald-500 text-white ring-emerald-500/20'
+                    : isDone    ? 'bg-emerald-600/80 text-white ring-transparent'
+                    :             'bg-gray-800 text-gray-500 ring-transparent'}`}>
+                    {isDone ? '✓' : i+1}
+                  </span>
+                  <span className={`text-xs font-medium whitespace-nowrap transition-colors
+                    ${isCurrent ? 'text-emerald-300' : isDone ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {lbl}
+                  </span>
+                </div>
+                {i < 2 && (
+                  <div className={`flex-1 h-0.5 mx-1 sm:mx-2 -mt-6 rounded-full transition-colors duration-300
+                    ${isDone ? 'bg-emerald-600/70' : 'bg-gray-800'}`}/>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Main area */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center px-4 py-6 sm:p-6">
+
+        {/* ─── SAP entry (guest mode) ─── */}
+        {stage === 'sap_entry' && (
+          <div className="w-full max-w-sm">
+            <div className="bg-gray-900/50 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-xl shadow-black/30 backdrop-blur-sm space-y-6 text-center">
+              <div>
+                <p className="text-emerald-400 uppercase text-sm tracking-[0.2em] font-bold mb-2">Бүртгэлгүй шалгалт</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">SAP дугаараа оруулна уу</h2>
+              </div>
+              <input
+                type="text" inputMode="numeric" value={guestSap}
+                onChange={e => setGuestSap(e.target.value.trim())}
+                onKeyDown={e => { if (e.key === 'Enter' && guestSap.trim()) setStage('shift_select'); }}
+                placeholder="SAP дугаар"
+                className="w-full bg-gray-900 border-2 border-gray-700 text-white text-center text-2xl sm:text-3xl font-mono tracking-widest rounded-2xl py-5 focus:outline-none focus:border-emerald-500 placeholder-gray-700"
+                autoFocus
+              />
+              <button onClick={() => setStage('shift_select')} disabled={!guestSap.trim()}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:cursor-not-allowed disabled:shadow-none text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]">
+                Үргэлжлүүлэх
+              </button>
+              <button onClick={() => navigate('/login')}
+                className="block w-full text-gray-500 hover:text-gray-300 text-sm transition-colors">
+                ← Буцах
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ─── Ээлж сонгох ─── */}
         {stage === 'shift_select' && (
-          <div className="text-center max-w-xs w-full space-y-6">
+          <div className="w-full max-w-sm">
+            <div className="bg-gray-900/50 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-xl shadow-black/30 backdrop-blur-sm">
             {shiftMain === '' ? (
               /* Step 1: Choose main shift type */
-              <>
+              <div className="space-y-7 text-center">
                 <div>
-                  <p className="text-gray-400 uppercase text-xs tracking-widest font-semibold mb-2">Өнөөдөрийн ээлж</p>
-                  <h2 className="text-2xl font-bold text-white">Ээлжээ сонгоно уу</h2>
+                  <p className="text-emerald-400 uppercase text-sm tracking-[0.2em] font-bold mb-2">Өнөөдөрийн ээлж</p>
+                  <h2 className="text-3xl font-bold text-white tracking-tight">Ээлжээ сонгоно уу</h2>
                 </div>
                 <div className="space-y-3">
                   {['\u04e8\u0434\u04e9\u0440', '\u0428\u04e9\u043d\u04e9', '\u0426\u0443\u0432\u0430\u0430'].map(s => (
@@ -288,54 +340,55 @@ export default function PVTTestArena() {
                         if (s === '\u0426\u0443\u0432\u0430\u0430') { setShiftMain('\u0426\u0443\u0432\u0430\u0430'); }
                         else { setTestShift(s); setStage('welcome'); }
                       }}
-                      className="w-full py-5 bg-gray-800 hover:bg-emerald-600 border border-gray-700 hover:border-emerald-500 text-white text-lg font-bold rounded-2xl transition-all duration-150">
+                      className="w-full py-5 bg-gray-800/80 hover:bg-emerald-600 border border-white/10 hover:border-emerald-500 text-white text-lg font-bold rounded-2xl transition-all duration-150 active:scale-[0.98] shadow-sm">
                       {s}
                     </button>
                   ))}
                 </div>
-              </>
+              </div>
             ) : (
               /* Step 2: Choose convoy number */
-              <>
+              <div className="space-y-7 text-center">
                 <div>
                   <button onClick={() => setShiftMain('')}
-                    className="text-gray-500 hover:text-gray-300 text-sm mb-4 flex items-center gap-1">
+                    className="text-gray-500 hover:text-gray-300 text-sm mb-4 flex items-center gap-1 transition-colors">
                     ← Буцах
                   </button>
-                  <p className="text-gray-400 uppercase text-xs tracking-widest font-semibold mb-2">Цуваа дугаар</p>
-                  <h2 className="text-2xl font-bold text-white">Цуваагаа сонгоно уу</h2>
+                  <p className="text-emerald-400 uppercase text-sm tracking-[0.2em] font-bold mb-2">Цуваа дугаар</p>
+                  <h2 className="text-3xl font-bold text-white tracking-tight">Цуваагаа сонгоно уу</h2>
                 </div>
                 <div className="grid grid-cols-4 gap-3">
                   {[1,2,3,4,5,6,7].map(n => (
                     <button key={n}
                       onClick={() => { setTestShift(`\u0426\u0443\u0432\u0430\u0430-${n}`); setStage('welcome'); }}
-                      className="py-5 bg-gray-800 hover:bg-emerald-600 border border-gray-700 hover:border-emerald-500 text-white text-xl font-black rounded-2xl transition-all duration-150">
+                      className="py-5 bg-gray-800/80 hover:bg-emerald-600 border border-white/10 hover:border-emerald-500 text-white text-xl font-black rounded-2xl transition-all duration-150 active:scale-[0.95] shadow-sm">
                       {n}
                     </button>
                   ))}
                 </div>
-              </>
+              </div>
             )}
+            </div>
           </div>
         )}
 
         {/* ─── Welcome ─── */}
         {stage === 'welcome' && (
-          <div className="text-center max-w-lg space-y-6">
-            <h2 className="text-3xl font-bold text-white">Сэргэг Байдлын Шалгалт</h2>
-            <p className="text-gray-400 leading-relaxed">
+          <div className="text-center max-w-xl space-y-6 sm:space-y-8">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">Сэргэг Байдлын Шалгалт</h2>
+            <p className="text-gray-300 text-lg sm:text-xl leading-relaxed">
               Та <span className="text-white font-semibold">гурван дараалсан шат</span> дуусгах шаардлагатай:
               санах ойн шалгалт, тоо эрэмбэлэлт, болон үйлдэл хийх хурдны шалгалт (10 удаа).
               Үргэлжлүүлэхийн өмнө заавар бүрийг анхааралтай уншина уу.
             </p>
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-left">
-              <p className="text-amber-300 text-sm font-semibold mb-2">⚠ Анхаарал</p>
-              <p className="text-amber-200/70 text-sm">
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 sm:p-5 text-left">
+              <p className="text-amber-300 text-base sm:text-lg font-bold mb-2">⚠ Анхаарал</p>
+              <p className="text-amber-200/80 text-base sm:text-lg leading-relaxed">
                 Гурван шатыг тасалдалгүй дуусгана уу.
               </p>
             </div>
             <button onClick={startStage1}
-              className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl text-lg transition-colors">
+              className="w-full sm:w-auto px-8 sm:px-12 py-4 sm:py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl text-lg sm:text-xl transition-colors shadow-lg shadow-emerald-500/20 active:scale-[0.98]">
               Шалгалт эхлэх
             </button>
           </div>
@@ -343,15 +396,15 @@ export default function PVTTestArena() {
 
         {/* ─── Stage 1: Show digits ─── */}
         {stage === 'stage1_show' && (
-          <div className="text-center space-y-6">
-            <p className="text-gray-400 uppercase text-xs tracking-widest font-semibold">1-р шат — Санах ойн шалгалт</p>
-            <p className="text-gray-300 text-sm">Дарааллыг цээжлэ. <span className="text-white font-bold">{countdown}с</span>-ийн дараа алга болно.</p>
-            <div className="bg-gray-900 border border-emerald-500/40 rounded-2xl px-12 py-8 shadow-lg shadow-emerald-500/5">
-              <p className="text-7xl font-mono font-black tracking-[0.3em] text-emerald-400 select-none">{s1Digit}</p>
+          <div className="text-center space-y-6 sm:space-y-8 w-full">
+            <p className="text-emerald-400 uppercase text-sm sm:text-base tracking-[0.2em] font-bold">1-р шат — Санах ойн шалгалт</p>
+            <p className="text-gray-200 text-xl sm:text-2xl font-medium px-2">Дарааллыг цээжлэ. <span className="text-white font-bold">{countdown}с</span>-ийн дараа алга болно.</p>
+            <div className="bg-gray-900 border border-emerald-500/40 rounded-3xl px-4 sm:px-14 py-8 sm:py-10 shadow-lg shadow-emerald-500/5">
+              <p className="text-6xl sm:text-8xl font-mono font-black tracking-[0.15em] sm:tracking-[0.3em] text-emerald-400 select-none">{s1Digit}</p>
             </div>
             <div className="flex gap-2 justify-center">
               {[...Array(5)].map((_,i) => (
-                <div key={i} className={`h-1.5 w-8 rounded-full transition-all duration-1000
+                <div key={i} className={`h-2 w-8 sm:w-10 rounded-full transition-all duration-1000
                   ${i < countdown ? 'bg-emerald-500' : 'bg-gray-700'}`}/>
               ))}
             </div>
@@ -360,18 +413,18 @@ export default function PVTTestArena() {
 
         {/* ─── Stage 1: Input ─── */}
         {stage === 'stage1_input' && (
-          <div className="text-center space-y-6 w-full max-w-sm">
-            <p className="text-gray-400 uppercase text-xs tracking-widest font-semibold">1-р шат — Санан бич</p>
-            <p className="text-2xl font-bold text-white">Харсан 6 оронтой дарааллыг бич</p>
+          <div className="text-center space-y-6 sm:space-y-8 w-full max-w-md">
+            <p className="text-emerald-400 uppercase text-sm sm:text-base tracking-[0.2em] font-bold">1-р шат — Санан бич</p>
+            <p className="text-2xl sm:text-3xl font-bold text-white">Харсан 6 оронтой дарааллыг бич</p>
             <input
-              type="text" maxLength={6} value={s1Input}
+              type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={s1Input}
               onChange={e => setS1Input(e.target.value.replace(/\D/g,''))}
               placeholder="_ _ _ _ _ _"
-              className="w-full bg-gray-900 border-2 border-gray-700 text-white text-center text-4xl font-mono tracking-[0.4em] rounded-2xl py-6 focus:outline-none focus:border-emerald-500 placeholder-gray-700"
+              className="w-full bg-gray-900 border-2 border-gray-700 text-white text-center text-4xl sm:text-5xl font-mono tracking-[0.2em] sm:tracking-[0.4em] rounded-2xl py-6 sm:py-7 focus:outline-none focus:border-emerald-500 placeholder-gray-700"
               autoFocus
             />
             <button onClick={submitS1} disabled={s1Input.length !== 6}
-              className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors">
+              className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:cursor-not-allowed disabled:shadow-none text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]">
               Дараалал баталгаажуулах
             </button>
           </div>
@@ -379,19 +432,19 @@ export default function PVTTestArena() {
 
         {/* ─── Stage 1: Result ─── */}
         {stage === 'stage1_result' && (
-          <div className="text-center space-y-6 max-w-sm">
-            <p className="text-gray-400 uppercase text-xs tracking-widest font-semibold">1-р шат — Үр дүн</p>
-            <div className={`rounded-2xl border p-6 ${s1Pass ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-red-500/10 border-red-500/40'}`}>
-              <p className={`text-5xl font-black mb-2 ${s1Pass ? 'text-emerald-400' : 'text-red-400'}`}>
+          <div className="text-center space-y-6 w-full max-w-md">
+            <p className="text-emerald-400 uppercase text-sm sm:text-base tracking-[0.2em] font-bold">1-р шат — Үр дүн</p>
+            <div className={`rounded-2xl border p-5 sm:p-6 ${s1Pass ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-red-500/10 border-red-500/40'}`}>
+              <p className={`text-4xl sm:text-5xl font-black mb-2 ${s1Pass ? 'text-emerald-400' : 'text-red-400'}`}>
                 {s1Pass ? 'ТЭНЦСЭН' : 'ТЭНЦСЭНГҮЙ'}
               </p>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-300 text-base">
                 Харуулсан: <span className="font-mono text-white tracking-widest">{s1Digit}</span>
                 &nbsp;|&nbsp; Оруулсан: <span className="font-mono text-white tracking-widest">{s1Input}</span>
               </p>
             </div>
             <button onClick={startStage2}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors">
+              className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98]">
               2-р шат руу үргэлжлэх →
             </button>
           </div>
@@ -399,15 +452,15 @@ export default function PVTTestArena() {
 
         {/* ─── Stage 2: Show ─── */}
         {stage === 'stage2_show' && (
-          <div className="text-center space-y-6">
-            <p className="text-gray-400 uppercase text-xs tracking-widest font-semibold">2-р шат — Эрэмбэлэлтийн хурд</p>
-            <p className="text-gray-300 text-sm">Тоонуудыг цээжлэ. Өсөх дарааллаар эрэмбэлэх ёстой. <span className="text-white font-bold">{countdown}с</span>-ийн дараа алга болно.</p>
-            <div className="bg-gray-900 border border-blue-500/40 rounded-2xl px-12 py-8">
-              <p className="text-7xl font-mono font-black tracking-[0.4em] text-blue-400 select-none">{s2Digit}</p>
+          <div className="text-center space-y-6 sm:space-y-8 w-full">
+            <p className="text-blue-400 uppercase text-sm sm:text-base tracking-[0.2em] font-bold">2-р шат — Эрэмбэлэлтийн хурд</p>
+            <p className="text-gray-200 text-xl sm:text-2xl font-medium px-2">Тоонуудыг цээжлэ. Өсөх дарааллаар эрэмбэлэх ёстой. <span className="text-white font-bold">{countdown}с</span>-ийн дараа алга болно.</p>
+            <div className="bg-gray-900 border border-blue-500/40 rounded-3xl px-4 sm:px-14 py-8 sm:py-10">
+              <p className="text-6xl sm:text-8xl font-mono font-black tracking-[0.15em] sm:tracking-[0.4em] text-blue-400 select-none">{s2Digit}</p>
             </div>
             <div className="flex gap-2 justify-center">
               {[...Array(5)].map((_,i) => (
-                <div key={i} className={`h-1.5 w-8 rounded-full transition-all duration-1000
+                <div key={i} className={`h-2 w-8 sm:w-10 rounded-full transition-all duration-1000
                   ${i < countdown ? 'bg-blue-500' : 'bg-gray-700'}`}/>
               ))}
             </div>
@@ -416,18 +469,18 @@ export default function PVTTestArena() {
 
         {/* ─── Stage 2: Input ─── */}
         {stage === 'stage2_input' && (
-          <div className="text-center space-y-6 w-full max-w-sm">
-            <p className="text-gray-400 uppercase text-xs tracking-widest font-semibold">2-р шат — Өсөх дарааллаар эрэмбэлэх</p>
-            <p className="text-2xl font-bold text-white">Тоонуудыг хамгийн бага → хамгийн их дарааллаар бич</p>
+          <div className="text-center space-y-6 sm:space-y-8 w-full max-w-md">
+            <p className="text-blue-400 uppercase text-sm sm:text-base tracking-[0.2em] font-bold">2-р шат — Өсөх дарааллаар эрэмбэлэх</p>
+            <p className="text-2xl sm:text-3xl font-bold text-white">Тоонуудыг хамгийн бага → хамгийн их дарааллаар бич</p>
             <input
-              type="text" maxLength={4} value={s2Input}
+              type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4} value={s2Input}
               onChange={e => setS2Input(e.target.value.replace(/\D/g,''))}
               placeholder="e.g. 1348"
-              className="w-full bg-gray-900 border-2 border-gray-700 text-white text-center text-4xl font-mono tracking-[0.4em] rounded-2xl py-6 focus:outline-none focus:border-blue-500 placeholder-gray-700"
+              className="w-full bg-gray-900 border-2 border-gray-700 text-white text-center text-4xl sm:text-5xl font-mono tracking-[0.2em] sm:tracking-[0.4em] rounded-2xl py-6 sm:py-7 focus:outline-none focus:border-blue-500 placeholder-gray-700"
               autoFocus
             />
             <button onClick={submitS2} disabled={s2Input.length !== 4}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors">
+              className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed disabled:shadow-none text-white font-bold rounded-2xl transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98]">
               Эрэмбэлэсэн дараалал баталгаажуулах
             </button>
           </div>
@@ -435,20 +488,20 @@ export default function PVTTestArena() {
 
         {/* ─── Stage 2: Result ─── */}
         {stage === 'stage2_result' && (
-          <div className="text-center space-y-6 max-w-sm">
-            <p className="text-gray-400 uppercase text-xs tracking-widest font-semibold">2-р шат — Үр дүн</p>
-            <div className={`rounded-2xl border p-6 ${s2Pass ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-red-500/10 border-red-500/40'}`}>
-              <p className={`text-5xl font-black mb-2 ${s2Pass ? 'text-emerald-400' : 'text-red-400'}`}>
+          <div className="text-center space-y-6 w-full max-w-md">
+            <p className="text-blue-400 uppercase text-sm sm:text-base tracking-[0.2em] font-bold">2-р шат — Үр дүн</p>
+            <div className={`rounded-2xl border p-5 sm:p-6 ${s2Pass ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-red-500/10 border-red-500/40'}`}>
+              <p className={`text-4xl sm:text-5xl font-black mb-2 ${s2Pass ? 'text-emerald-400' : 'text-red-400'}`}>
                 {s2Pass ? 'ТЭНЦСЭН' : 'ТЭНЦСЭНГҮЙ'}
               </p>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-300 text-base">
                 Харуулсан: <span className="font-mono text-white">{s2Digit}</span>
                 &nbsp;→ Хүлээгдэж байгаа: <span className="font-mono text-white">{ascending(s2Digit)}</span>
                 &nbsp;| Оруулсан: <span className="font-mono text-white">{s2Input}</span>
               </p>
             </div>
             <button onClick={startStage3}
-              className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors">
+              className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-purple-500/20 active:scale-[0.98]">
               3-р шат — Үйлдэл хийх хурдны шалгалт руу →
             </button>
           </div>
@@ -457,40 +510,40 @@ export default function PVTTestArena() {
         {/* ─── Stage 3 ─── */}
         {['stage3_idle','stage3_armed','stage3_running','stage3_recovery'].includes(stage) && (
           <div className="text-center w-full max-w-md space-y-6 select-none">
-            <p className="text-gray-400 uppercase text-xs tracking-widest font-semibold">
-              3-р шат — Үйлдэл хийх хурдны шалгалт &nbsp;|&nbsp; Туршилт {trialIndex+1} / {TOTAL_TRIALS}
+            <p className="text-purple-400 uppercase text-sm sm:text-base tracking-[0.2em] font-bold">
+              3-р шат — Үйлдэл хийх хурд &nbsp;|&nbsp; Туршилт {trialIndex+1} / {TOTAL_TRIALS}
             </p>
 
             {/* Reaction pad */}
             <div
-              className={`w-full aspect-square max-w-xs mx-auto rounded-3xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-150 shadow-2xl
+              className={`w-full aspect-square max-w-[17rem] sm:max-w-xs mx-auto rounded-3xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-150 shadow-2xl px-4
                 ${stage==='stage3_idle'     ? 'bg-gray-800 border-gray-700'
                 : stage==='stage3_armed'    ? 'bg-gray-900 border-amber-500/50 shadow-amber-500/10'
                 : stage==='stage3_running'  ? 'bg-emerald-500 border-emerald-400 shadow-emerald-500/40 scale-[1.02]'
                 :                             'bg-gray-800 border-gray-700'}`}
             >
-              {stage==='stage3_idle' && <p className="text-gray-500 text-lg font-medium">Бэлтгэж байна...</p>}
+              {stage==='stage3_idle' && <p className="text-gray-500 text-lg sm:text-xl font-medium">Бэлтгэж байна...</p>}
               {stage==='stage3_armed' && (
                 <>
-                  <p className="text-amber-400 text-xl font-bold">НОГООН ГЭРЛИЙГ ХҮЛЭЭ</p>
-                  <p className="text-gray-400 text-sm mt-3 px-4">Ногоон болмогц аль болох хурдан дарна уу</p>
+                  <p className="text-amber-400 text-xl sm:text-2xl font-black">НОГООН ГЭРЛИЙГ ХҮЛЭЭ</p>
+                  <p className="text-gray-300 text-base sm:text-lg mt-3 px-2">Ногоон болмогц аль болох хурдан дарна уу</p>
                 </>
               )}
               {stage==='stage3_running' && (
                 <>
-                  <p className="text-white text-5xl font-black drop-shadow-lg">ДАРНА УУ!</p>
-                  <p className="text-emerald-200 text-sm mt-3">Хаана ч дарна уу</p>
+                  <p className="text-white text-5xl sm:text-6xl font-black drop-shadow-lg">ДАРНА УУ!</p>
+                  <p className="text-emerald-100 text-base sm:text-lg mt-3 font-medium">Хаана ч дарна уу</p>
                 </>
               )}
               {stage==='stage3_recovery' && (
                 <div className="text-center">
-                  <p className={`text-3xl font-black
+                  <p className={`text-3xl sm:text-4xl font-black
                     ${lastRT==='FALSE START' ? 'text-red-400'
-                    : typeof lastRT==='number' && lastRT>=500 ? 'text-amber-400'
+                    : typeof lastRT==='number' && lastRT>=560 ? 'text-amber-400'
                     : 'text-white'}`}>
                     {lastRT === 'FALSE START' ? '⚡ ТҮРҮҮЛЖ ДАРСАН' : `${lastRT}мс`}
                   </p>
-                  <p className="text-gray-500 text-xs mt-2">Дараагийн туршилт...</p>
+                  <p className="text-gray-400 text-sm mt-2">Дараагийн туршилт...</p>
                 </div>
               )}
             </div>
@@ -510,7 +563,7 @@ export default function PVTTestArena() {
                 );
               })}
             </div>
-            <p className="text-gray-600 text-xs">🔴 Түрүүлж дарсан &nbsp;|&nbsp; 🟡 Хоцролт (≥500мс) &nbsp;|&nbsp; 🟢 Амжилттай</p>
+            <p className="text-gray-400 text-sm">🔴 Түрүүлж дарсан &nbsp;|&nbsp; 🟡 Хоцролт (≥560мс) &nbsp;|&nbsp; 🟢 Амжилттай</p>
           </div>
         )}
 
@@ -524,14 +577,17 @@ export default function PVTTestArena() {
             </p>
 
             {/* Main status card */}
-            <div className={`rounded-2xl border-2 p-8 text-center ${sc.bg} ${sc.border}`}>
+            <div className={`rounded-2xl border-2 p-6 sm:p-8 text-center ${sc.bg} ${sc.border}`}>
               <div className="text-5xl mb-3">
-                {finalStatus==='LOW_RISK' ? '✅' : finalStatus==='MODERATE_RISK' ? '⚠️' : '🚫'}
+                {finalStatus==='LOW_RISK' ? '✅' : '🚫'}
               </div>
-              <p className={`text-3xl font-black ${sc.color}`}>{sc.label}</p>
+              <p className={`text-2xl sm:text-3xl font-black ${sc.color}`}>{sc.label}</p>
               <div className="mt-5 pt-4 border-t border-white/10 flex flex-col items-center gap-1">
                 <p className="text-white font-bold text-lg">{driverName}</p>
                 <p className="text-gray-400 text-sm">{companyName}</p>
+                {completedAt && (
+                  <p className="text-gray-400 text-sm font-mono mt-0.5">🕒 {fmtDateTime(completedAt)}</p>
+                )}
                 {testShift && (
                   <span className="mt-1 text-xs font-semibold px-3 py-1 bg-white/10 rounded-full text-gray-300">
                     Ээлж: {testShift}
@@ -567,10 +623,10 @@ export default function PVTTestArena() {
               <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                 {[
                   { label:'Дундаж хурд', value:`${pvtStats.meanRT}`, unit:'мс',
-                    sub: pvtStats.meanRT<350 ? '● Хэвийн' : pvtStats.meanRT<500 ? '● Сануулга' : '● Удаан',
-                    color: pvtStats.meanRT<350?'text-emerald-400':pvtStats.meanRT<500?'text-amber-400':'text-red-400' },
+                    sub: pvtStats.meanRT<350 ? '● Хэвийн' : pvtStats.meanRT<560 ? '● Сануулга' : '● Удаан',
+                    color: pvtStats.meanRT<350?'text-emerald-400':pvtStats.meanRT<560?'text-amber-400':'text-red-400' },
                   { label:'Голч хурд', value:`${pvtStats.medianRT}`, unit:'мс', sub:'', color:'text-white' },
-                  { label:'Хоцролт', value:`${pvtStats.lapses}`, unit:'удаа', sub:'≥500мс',
+                  { label:'Хоцролт', value:`${pvtStats.lapses}`, unit:'удаа', sub:'≥560мс',
                     color: pvtStats.lapses===0?'text-emerald-400':pvtStats.lapses<3?'text-amber-400':'text-red-400' },
                   { label:'Түрүүлж дарсан', value:`${pvtStats.falseStarts}`, unit:'удаа', sub:'<100мс',
                     color: pvtStats.falseStarts===0?'text-emerald-400':pvtStats.falseStarts<2?'text-amber-400':'text-red-400' },
@@ -590,7 +646,7 @@ export default function PVTTestArena() {
 
             {/* Trial visual summary */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3">
                 <p className="text-gray-500 text-xs uppercase tracking-wide">10 туршилтын тойм</p>
                 <div className="flex gap-3 text-xs text-gray-600">
                   <span>🔴 Түрүүлсэн</span>
@@ -600,7 +656,7 @@ export default function PVTTestArena() {
               </div>
               <div className="flex gap-1.5 flex-wrap">
                 {trials.map((t, i) => (
-                  <div key={i} className={`flex-1 min-w-[28px] h-10 rounded-lg flex flex-col items-center justify-center text-xs font-bold
+                  <div key={i} className={`flex-1 min-w-[24px] sm:min-w-[28px] h-10 rounded-lg flex flex-col items-center justify-center text-xs font-bold
                     ${t.isFalseStart ? 'bg-red-500/20 border border-red-500/40 text-red-400'
                     : t.isLapse      ? 'bg-amber-500/20 border border-amber-500/40 text-amber-400'
                     :                  'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400'}`}>

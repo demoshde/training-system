@@ -26,7 +26,7 @@ const Certificate = () => {
       setCertificate(res.data);
     } catch (error) {
       toast.error('Гэрчилгээ татахад алдаа гарлаа');
-      navigate('/');
+      navigate('/trainings');
     } finally {
       setLoading(false);
     }
@@ -78,7 +78,7 @@ const Certificate = () => {
         {/* Actions */}
         <div className="flex justify-between items-center mb-6">
           <Link
-            to="/"
+            to="/trainings"
             className="flex items-center text-gray-600 hover:text-gray-900 transition"
           >
             <ArrowLeftIcon className="h-5 w-5 mr-2" />
