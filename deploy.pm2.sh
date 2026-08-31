@@ -26,10 +26,10 @@ echo "🚀 Deploying $(basename "$SCRIPT_DIR")  (branch: $BRANCH, pm2 app: $PM2_
 echo "================================================================"
 
 echo "1/4  Pulling latest code..."
-# The generated lockfile often drifts on the server; reset just that, then fast-forward.
-git checkout -- client/package-lock.json 2>/dev/null || true
+# A deploy server should mirror origin exactly. dist/ and node_modules/ are
+# gitignored, so a hard reset only discards stray tracked-file drift (e.g. lockfile).
 git fetch origin "$BRANCH"
-git pull --ff-only origin "$BRANCH"
+git reset --hard "origin/$BRANCH"
 echo "     now at: $(git log --oneline -1)"
 
 echo "2/4  Building frontend (client/dist)..."
