@@ -3,11 +3,12 @@ const router  = express.Router();
 const Worker  = require('../models/Worker');
 const PVTTest = require('../models/PVTTest');
 const PVTAlert= require('../models/PVTAlert');
-const { adminAuth, workerAuth } = require('../middleware/auth');
+const PvtSettings = require('../models/PvtSettings');
+const { adminAuth, workerAuth, superAdminOnly } = require('../middleware/auth');
 
-// ─── Scoring helper ────────────────────────────────────────────
-function computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts) {
-  if ((!s1Pass && !s2Pass) || meanRT >= 560 || lapses >= 3 || falseStarts >= 2) return 'HIGH_RISK';
+// ─── Scoring helper ────────────────────────────
+function computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts, s) {
+  if ((!s1Pass && !s2Pass) || meanRT >= s.meanRtFail || lapses >= s.maxLapses || falseStarts >= s.maxFalseStarts) return 'HIGH_RISK';
   return 'LOW_RISK';
 }
 
@@ -21,7 +22,8 @@ router.post('/tests', workerAuth, async (req, res) => {
     }
 
     const { meanRT, lapses, falseStarts } = stage3;
-    const overallStatus = computeStatus(stage1.passed, stage2.passed, meanRT, lapses, falseStarts);
+    const settings = await PvtSettings.getSingleton();
+    const overallStatus = computeStatus(stage1.passed, stage2.passed, meanRT, lapses, falseStarts, settings);
     const companyId = req.worker.company?._id ?? req.worker.company;
     if (!companyId) return res.status(400).json({ message: 'Worker has no company assigned.' });
 
@@ -59,7 +61,8 @@ router.post('/tests/guest', async (req, res) => {
     if (!stage1 || !stage2 || !stage3) return res.status(400).json({ message: 'Missing stage data' });
 
     const { meanRT, lapses, falseStarts } = stage3;
-    const overallStatus = computeStatus(stage1.passed, stage2.passed, meanRT, lapses, falseStarts);
+    const settings = await PvtSettings.getSingleton();
+    const overallStatus = computeStatus(stage1.passed, stage2.passed, meanRT, lapses, falseStarts, settings);
 
     // Attach worker/company if this SAP happens to be registered
     const worker = await Worker.findOne({ sapId: sapId.trim() }).populate('company');
@@ -209,6 +212,51 @@ router.get('/export', adminAuth, async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="pvt-report.csv"');
     res.send(csv);
   } catch { res.status(500).json({ message: 'Server error' }); }
+});
+
+// ── GET /api/pvt/settings  — public (test client needs thresholds) ───────────
+router.get('/settings', async (req, res) => {
+  try {
+    const s = await PvtSettings.getSingleton();
+    res.json({
+      meanRtFail: s.meanRtFail, lapseRt: s.lapseRt, maxLapses: s.maxLapses,
+      falseStartRt: s.falseStartRt, maxFalseStarts: s.maxFalseStarts, normalRt: s.normalRt
+    });
+  } catch { res.status(500).json({ message: 'Server error' }); }
+});
+
+// ── PUT /api/pvt/settings  — super admin updates thresholds ──────────────────
+router.put('/settings', adminAuth, superAdminOnly, async (req, res) => {
+  try {
+    const s = await PvtSettings.getSingleton();
+    const fields = ['meanRtFail','lapseRt','maxLapses','falseStartRt','maxFalseStarts','normalRt'];
+    for (const f of fields) {
+      if (req.body[f] !== undefined) {
+        const n = Number(req.body[f]);
+        if (!Number.isFinite(n) || n < 0) return res.status(400).json({ message: `Буруу утга: ${f}` });
+        s[f] = n;
+      }
+    }
+    await s.save();
+    res.json({
+      meanRtFail: s.meanRtFail, lapseRt: s.lapseRt, maxLapses: s.maxLapses,
+      falseStartRt: s.falseStartRt, maxFalseStarts: s.maxFalseStarts, normalRt: s.normalRt
+    });
+  } catch (err) { res.status(500).json({ message: err.message || 'Server error' }); }
+});
+
+// ── GET /api/pvt/history/:driverSap  — a driver's test history (trend) ───────
+router.get('/history/:driverSap', adminAuth, async (req, res) => {
+  try {
+    const filter = { driverSap: req.params.driverSap };
+    if (req.admin.role !== 'super_admin') {
+      filter.company = req.admin.company?._id || req.admin.company;
+    }
+    const tests = await PVTTest.find(filter)
+      .select('testedAt overallStatus testShift stage1.passed stage2.passed stage3.meanRT stage3.medianRT stage3.lapses stage3.falseStarts driverName')
+      .sort({ testedAt: 1 }).limit(200);
+    res.json(tests);
+  } catch (err) { res.status(500).json({ message: err.message || 'Server error' }); }
 });
 
 module.exports = router;

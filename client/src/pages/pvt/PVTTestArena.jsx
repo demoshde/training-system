@@ -19,11 +19,12 @@ const fmtDateTime = (d) => {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())}  ${p(d.getHours())}:${p(d.getMinutes())}`;
 };
-function computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts) {
-  if ((!s1Pass && !s2Pass) || meanRT >= 560 || lapses >= 3 || falseStarts >= 2) return 'HIGH_RISK';
+function computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts, t) {
+  if ((!s1Pass && !s2Pass) || meanRT >= t.meanRtFail || lapses >= t.maxLapses || falseStarts >= t.maxFalseStarts) return 'HIGH_RISK';
   return 'LOW_RISK';
 }
 const TOTAL_TRIALS = 10;
+const DEFAULT_THRESHOLDS = { meanRtFail:560, lapseRt:560, maxLapses:3, falseStartRt:100, maxFalseStarts:2, normalRt:350 };
 
 // ─── Status UI config ──────────────────────────────────────────
 const statusConfig = {
@@ -67,6 +68,7 @@ export default function PVTTestArena({ guest = false }) {
   const [trials, setTrials]         = useState([]);   // { rt, isFalseStart, isLapse }
   const [lastRT, setLastRT]         = useState(null);
   const [pvtStats, setPvtStats]     = useState(null);
+  const [thresholds, setThresholds] = useState(DEFAULT_THRESHOLDS);
 
   // Final
   const [finalStatus, setFinalStatus] = useState(null);
@@ -82,6 +84,13 @@ export default function PVTTestArena({ guest = false }) {
   useEffect(() => {
     if (!guest && !worker) navigate('/login');
   }, [guest, worker, navigate]);
+
+  // Load admin-configured scoring thresholds (falls back to defaults)
+  useEffect(() => {
+    pvtGuestApi.get('/settings')
+      .then(({ data }) => setThresholds(prev => ({ ...prev, ...data })))
+      .catch(() => {});
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => () => {
@@ -158,8 +167,8 @@ export default function PVTTestArena({ guest = false }) {
       advanceTrial(updated);
     } else if (stage === 'stage3_running') {
       const rt = now - startRef.current;
-      const isFalseStart = rt < 100;
-      const isLapse = rt >= 560;
+      const isFalseStart = rt < thresholds.falseStartRt;
+      const isLapse = rt >= thresholds.lapseRt;
       const newTrial = { rt: Math.round(rt), isFalseStart, isLapse };
       const updated = [...currentTrials, newTrial];
       setTrials(updated);
@@ -187,7 +196,7 @@ export default function PVTTestArena({ guest = false }) {
     const falseStarts = finalTrials.filter(t => t.isFalseStart).length;
     const stats = { meanRT, medianRT, lapses, falseStarts };
     setPvtStats(stats);
-    const status = computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts);
+    const status = computeStatus(s1Pass, s2Pass, meanRT, lapses, falseStarts, thresholds);
     setFinalStatus(status);
     setCompletedAt(new Date());
     setStage('final_results');
@@ -539,7 +548,7 @@ export default function PVTTestArena({ guest = false }) {
                 <div className="text-center">
                   <p className={`text-3xl sm:text-4xl font-black
                     ${lastRT==='FALSE START' ? 'text-red-400'
-                    : typeof lastRT==='number' && lastRT>=560 ? 'text-amber-400'
+                    : typeof lastRT==='number' && lastRT>=thresholds.lapseRt ? 'text-amber-400'
                     : 'text-white'}`}>
                     {lastRT === 'FALSE START' ? '⚡ ТҮРҮҮЛЖ ДАРСАН' : `${lastRT}мс`}
                   </p>
@@ -563,7 +572,7 @@ export default function PVTTestArena({ guest = false }) {
                 );
               })}
             </div>
-            <p className="text-gray-400 text-sm">🔴 Түрүүлж дарсан &nbsp;|&nbsp; 🟡 Хоцролт (≥560мс) &nbsp;|&nbsp; 🟢 Амжилттай</p>
+            <p className="text-gray-400 text-sm">🔴 Түрүүлж дарсан &nbsp;|&nbsp; 🟡 Хоцролт (≥{thresholds.lapseRt}мс) &nbsp;|&nbsp; 🟢 Амжилттай</p>
           </div>
         )}
 
@@ -623,13 +632,13 @@ export default function PVTTestArena({ guest = false }) {
               <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                 {[
                   { label:'Дундаж хурд', value:`${pvtStats.meanRT}`, unit:'мс',
-                    sub: pvtStats.meanRT<350 ? '● Хэвийн' : pvtStats.meanRT<560 ? '● Сануулга' : '● Удаан',
-                    color: pvtStats.meanRT<350?'text-emerald-400':pvtStats.meanRT<560?'text-amber-400':'text-red-400' },
+                    sub: pvtStats.meanRT<thresholds.normalRt ? '● Хэвийн' : pvtStats.meanRT<thresholds.meanRtFail ? '● Сануулга' : '● Удаан',
+                    color: pvtStats.meanRT<thresholds.normalRt?'text-emerald-400':pvtStats.meanRT<thresholds.meanRtFail?'text-amber-400':'text-red-400' },
                   { label:'Голч хурд', value:`${pvtStats.medianRT}`, unit:'мс', sub:'', color:'text-white' },
-                  { label:'Хоцролт', value:`${pvtStats.lapses}`, unit:'удаа', sub:'≥560мс',
-                    color: pvtStats.lapses===0?'text-emerald-400':pvtStats.lapses<3?'text-amber-400':'text-red-400' },
-                  { label:'Түрүүлж дарсан', value:`${pvtStats.falseStarts}`, unit:'удаа', sub:'<100мс',
-                    color: pvtStats.falseStarts===0?'text-emerald-400':pvtStats.falseStarts<2?'text-amber-400':'text-red-400' },
+                  { label:'Хоцролт', value:`${pvtStats.lapses}`, unit:'удаа', sub:`≥${thresholds.lapseRt}мс`,
+                    color: pvtStats.lapses===0?'text-emerald-400':pvtStats.lapses<thresholds.maxLapses?'text-amber-400':'text-red-400' },
+                  { label:'Түрүүлж дарсан', value:`${pvtStats.falseStarts}`, unit:'удаа', sub:`<${thresholds.falseStartRt}мс`,
+                    color: pvtStats.falseStarts===0?'text-emerald-400':pvtStats.falseStarts<thresholds.maxFalseStarts?'text-amber-400':'text-red-400' },
                 ].map(s => (
                   <div key={s.label} className="flex items-start justify-between border-b border-gray-800 pb-3 last:border-0 last:pb-0">
                     <div>

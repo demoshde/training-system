@@ -31,6 +31,9 @@ export default function PVTManagement() {
   const [dateFilter,   setDateFilter]   = useState(() => new Date().toISOString().slice(0,10));
   const [searchFilter,  setSearchFilter]  = useState('');
   const [expandedGroups, setExpandedGroups] = useState(new Set());
+  const [settings, setSettings] = useState(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [trend, setTrend] = useState(null);   // { sap, name, tests, loading }
   const pollRef  = useRef(null);
   const testsRef = useRef(null);
 
@@ -51,13 +54,38 @@ export default function PVTManagement() {
       setLoadingTests(false);
     }
   }, []);
+  const fetchSettings = useCallback(async () => {
+    try { const { data } = await pvtAdminApi.get('/settings'); setSettings(data); } catch {}
+  }, []);
+
+  const saveSettings = async (e) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      const { data } = await pvtAdminApi.put('/settings', settings);
+      setSettings(data);
+      toast.success('Тохиргоо хадгалагдлаа');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Хадгалахад алдаа гарлаа');
+    } finally { setSavingSettings(false); }
+  };
+
+  const openTrend = async (sap, name) => {
+    setTrend({ sap, name, tests: [], loading: true });
+    try {
+      const { data } = await pvtAdminApi.get(`/history/${encodeURIComponent(sap)}`);
+      setTrend({ sap, name, tests: data, loading: false });
+    } catch {
+      setTrend({ sap, name, tests: [], loading: false });
+    }
+  };
 
   useEffect(() => {
-    fetchStats(); fetchAlerts(); fetchTests();
+    fetchStats(); fetchAlerts(); fetchTests(); fetchSettings();
     pollRef.current  = setInterval(fetchAlerts, 5000);
     testsRef.current = setInterval(fetchTests, 30000); // auto-refresh every 30s
     return () => { clearInterval(pollRef.current); clearInterval(testsRef.current); };
-  }, [fetchStats, fetchAlerts, fetchTests]);
+  }, [fetchStats, fetchAlerts, fetchTests, fetchSettings]);
 
   const dismissAlert = async (id) => {
     await pvtAdminApi.put(`/alerts/${id}/read`);
@@ -161,6 +189,33 @@ export default function PVTManagement() {
   // Unique companies from loaded tests
   const companyOptions = [...new Set(tests.map(t => t.company?.name).filter(Boolean))].sort();
 
+  // Per-driver trend chart config
+  const trendChartData = (list) => ({
+    labels: list.map(t => new Date(t.testedAt).toLocaleDateString('mn-MN', { month:'2-digit', day:'2-digit' })),
+    datasets: [
+      {
+        label: 'Дундаж хариу (мс)',
+        data: list.map(t => t.stage3?.meanRT ?? null),
+        borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)',
+        tension: 0.3, fill: true, pointRadius: 5,
+        pointBackgroundColor: list.map(t => t.overallStatus === 'HIGH_RISK' ? '#ef4444' : '#10b981'),
+      },
+      ...(settings ? [{
+        label: `Тэнцэхгүй босго (${settings.meanRtFail}мс)`,
+        data: list.map(() => settings.meanRtFail),
+        borderColor: '#ef4444', borderDash: [6,4], pointRadius: 0, fill: false,
+      }] : []),
+    ],
+  });
+  const trendChartOptions = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color:'#374151', font:{ size:11 } } } },
+    scales: {
+      x: { ticks:{ color:'#6b7280' }, grid:{ color:'rgba(0,0,0,0.04)' } },
+      y: { ticks:{ color:'#6b7280' }, grid:{ color:'rgba(0,0,0,0.04)' }, title:{ display:true, text:'мс', color:'#6b7280' } },
+    },
+  };
+
   return (
     <AdminLayout>
       {/* HIGH RISK alert banner */}
@@ -194,7 +249,8 @@ export default function PVTManagement() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200 mb-6">
-        {[['overview','Тойм'],['history','Шалгалтын түүх'],['analytics','Шинжилгээ']].map(([key,lbl]) => (
+        {[['overview','Тойм'],['history','Шалгалтын түүх'],['analytics','Шинжилгээ'],
+          ...(admin?.role==='super_admin' ? [['settings','Тохиргоо']] : [])].map(([key,lbl]) => (
           <button key={key} onClick={() => setTab(key)}
             className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px
               ${tab===key ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
@@ -348,10 +404,22 @@ export default function PVTManagement() {
                         {new Date(r.testedAt).toLocaleTimeString('mn-MN', {hour:'2-digit', minute:'2-digit'})}
                       </td>
                       <td className="px-4 py-2.5">
-                        <p className="text-gray-800 font-medium text-sm">
-                          {r.driver?.firstName ? `${r.driver.firstName} ${r.driver.lastName}` : r.driverName || 'Зочин'}
-                        </p>
-                        <p className="text-gray-400 text-xs">{r.driver?.sapId || r.driverSap}</p>
+                        <div className="flex items-center gap-2">
+                          <div className="min-w-0">
+                            <p className="text-gray-800 font-medium text-sm">
+                              {r.driver?.firstName ? `${r.driver.firstName} ${r.driver.lastName}` : r.driverName || 'Зочин'}
+                            </p>
+                            <p className="text-gray-400 text-xs">{r.driver?.sapId || r.driverSap}</p>
+                          </div>
+                          {!isSubRow && (r.driver?.sapId || r.driverSap) && (
+                            <button
+                              onClick={() => openTrend(r.driver?.sapId || r.driverSap, r.driver?.firstName ? `${r.driver.firstName} ${r.driver.lastName}` : (r.driverName || 'Зочин'))}
+                              title="Хариу урвалын хандлага"
+                              className="text-blue-500 hover:text-blue-700 text-base flex-shrink-0">
+                              📈
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-2.5 text-gray-600 text-xs">{r.company?.name || '—'}</td>
                       <td className="px-4 py-2.5 text-gray-600 text-xs">{r.testShift || r.driver?.shiftType || '—'}</td>
@@ -557,6 +625,79 @@ export default function PVTManagement() {
           </div>
         );
       })()}
+
+      {/* SETTINGS (super admin) */}
+      {tab==='settings' && (
+        <div className="max-w-2xl">
+          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-gray-800 mb-1">PVT оноолтын босго утга</h2>
+            <p className="text-gray-500 text-sm mb-6">Эдгээр утгыг өөрчилснөөр шалгалт тэнцсэн/тэнцэхгүйг тодорхойлно. Тестийн дэлгэц эдгээр утгыг ашиглана.</p>
+            {settings ? (
+              <form onSubmit={saveSettings} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {[
+                    { key:'meanRtFail',     label:'Дундаж хурд — тэнцэхгүй (мс ≥)', hint:'Дундаж хариу энэ утгаас удаан бол тэнцэхгүй' },
+                    { key:'lapseRt',        label:'Хоцролтын босго (мс ≥)',        hint:'Нэг оролдлого энэ утгаас удаан бол хоцролт' },
+                    { key:'maxLapses',      label:'Хоцролтын дээд тоо (≥ → тэнцэхгүй)', hint:'Энэ тооноос олон хоцролт бол тэнцэхгүй' },
+                    { key:'falseStartRt',   label:'Түрүүлж дарсан босго (мс <)',   hint:'Энэ утгаас хурдан дарвал түрүүлж дарсан' },
+                    { key:'maxFalseStarts', label:'Түрүүлж дарсан дээд тоо (≥ → тэнцэхгүй)', hint:'Энэ тооноос олон бол тэнцэхгүй' },
+                    { key:'normalRt',       label:'Хэвийн хурдны босго (мс <)',    hint:'Дэлгэцэнд "Хэвийн" гэж харуулах босго' },
+                  ].map(f => (
+                    <div key={f.key}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                      <input type="number" min="0" value={settings[f.key]}
+                        onChange={e => setSettings(s => ({ ...s, [f.key]: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                      <p className="text-gray-400 text-xs mt-1">{f.hint}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 pt-2">
+                  <button type="submit" disabled={savingSettings}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50">
+                    {savingSettings ? 'Хадгалж байна...' : 'Хадгалах'}
+                  </button>
+                  <button type="button" onClick={fetchSettings}
+                    className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors">
+                    Буцаах
+                  </button>
+                </div>
+              </form>
+            ) : <p className="text-gray-400">Уншиж байна...</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Per-driver trend modal */}
+      {trend && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setTrend(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">{trend.name}</h3>
+                <p className="text-gray-500 text-sm">SAP: {trend.sap} · Хариу урвалын хандлага</p>
+              </div>
+              <button onClick={() => setTrend(null)} className="text-gray-400 hover:text-gray-700 text-xl leading-none">✕</button>
+            </div>
+            {trend.loading ? (
+              <p className="text-gray-400 text-center py-16">Уншиж байна...</p>
+            ) : trend.tests.length === 0 ? (
+              <p className="text-gray-400 text-center py-16">Түүх байхгүй байна.</p>
+            ) : (
+              <>
+                <div style={{height:'280px'}}>
+                  <Line data={trendChartData(trend.tests)} options={trendChartOptions} />
+                </div>
+                <div className="grid grid-cols-3 gap-3 mt-5 text-center">
+                  <div><p className="text-gray-400 text-xs uppercase tracking-wide">Нийт</p><p className="text-2xl font-black text-gray-800">{trend.tests.length}</p></div>
+                  <div><p className="text-gray-400 text-xs uppercase tracking-wide">Тэнцэхгүй</p><p className="text-2xl font-black text-red-600">{trend.tests.filter(t=>t.overallStatus==='HIGH_RISK').length}</p></div>
+                  <div><p className="text-gray-400 text-xs uppercase tracking-wide">Дундаж RT</p><p className="text-2xl font-black text-gray-800">{Math.round(trend.tests.reduce((a,t)=>a+(t.stage3?.meanRT||0),0)/trend.tests.length)}<span className="text-sm">мс</span></p></div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
