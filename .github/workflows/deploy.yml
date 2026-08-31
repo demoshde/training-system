@@ -1,0 +1,29 @@
+name: Deploy to VPS
+
+# Auto-deploy the production server whenever code is pushed to main.
+# The server runs on pm2 + host nginx (NOT Docker); deploy.pm2.sh does the work.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Prevent overlapping deploys
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          command_timeout: 15m
+          script: |
+            cd /root/training-mern
+            ./deploy.pm2.sh
