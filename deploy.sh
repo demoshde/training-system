@@ -65,8 +65,6 @@ else
     cd training-system
 fi
 
-cd mern
-
 echo -e "${YELLOW}Step 8: Setting up environment...${NC}"
 if [ ! -f ".env" ]; then
     # Generate random secrets
