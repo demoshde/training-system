@@ -18,6 +18,9 @@ import Certificate from './pages/worker/Certificate';
 // Supervisor page (standalone)
 import SupervisorCheck from './pages/SupervisorCheck';
 
+// Public training self-enrollment
+import TrainingJoin from './pages/TrainingJoin';
+
 // Admin pages
 import AdminLogin from './pages/admin/Login';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -60,6 +63,9 @@ function App() {
 
           {/* Supervisor route (standalone, PIN protected) */}
           <Route path="/supervisor" element={<SupervisorCheck />} />
+
+          {/* Public training self-enrollment (SAP only) */}
+          <Route path="/train/:trainingId" element={<TrainingJoin />} />
           
           {/* Worker routes */}
           <Route path="/login" element={<WorkerLogin />} />

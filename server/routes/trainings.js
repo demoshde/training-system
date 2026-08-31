@@ -218,4 +218,69 @@ router.post('/:id/questions', adminAuth, superAdminOnly, async (req, res) => {
   }
 });
 
+// Teacher results: attendees + per-question analytics for a training
+router.get('/:id/results', adminAuth, async (req, res) => {
+  try {
+    const training = await Training.findById(req.params.id);
+    if (!training) return res.status(404).json({ message: 'Сургалт олдсонгүй' });
+
+    let enrollments = await Enrollment.find({ training: req.params.id })
+      .populate('worker', 'firstName lastName sapId company isSelfRegistered')
+      .sort({ updatedAt: -1 });
+
+    // Company admins only see their own company's attendees
+    if (req.admin.role !== 'super_admin') {
+      const cid = (req.admin.company?._id || req.admin.company)?.toString();
+      enrollments = enrollments.filter(e => (e.worker?.company?.toString?.() || '') === cid);
+    }
+
+    const attendees = enrollments.map(e => ({
+      enrollmentId: e._id,
+      name: e.worker?.firstName ? `${e.worker.firstName} ${e.worker.lastName}`.trim() : '',
+      sapId: e.worker?.sapId || '',
+      isSelfRegistered: e.worker?.isSelfRegistered || false,
+      progress: e.progress || 0,
+      isPassed: e.isPassed || false,
+      score: e.score ?? null,
+      attempts: e.attempts || 0,
+      completedAt: e.completedAt || null,
+      hasQuiz: (e.quizResponses?.length || 0) > 0,
+    }));
+
+    // Per-question stats across everyone who answered the quiz
+    const questionStats = training.questions.map(q => {
+      let correct = 0, wrong = 0;
+      for (const e of enrollments) {
+        const r = (e.quizResponses || []).find(x => x.question?.toString() === q._id.toString());
+        if (!r) continue;
+        if (r.isCorrect) correct++; else wrong++;
+      }
+      const answered = correct + wrong;
+      return {
+        questionId: q._id,
+        questionText: q.questionText,
+        correctText: (q.options.find(o => o.isCorrect) || {}).text || '',
+        answered, correct, wrong,
+        wrongPct: answered ? Math.round((wrong / answered) * 100) : 0,
+      };
+    }).sort((a, b) => b.wrongPct - a.wrongPct);
+
+    const passedCount = attendees.filter(a => a.isPassed).length;
+    res.json({
+      training: { _id: training._id, title: training.title, passingScore: training.passingScore, questionCount: training.questions.length },
+      summary: {
+        total: attendees.length,
+        passed: passedCount,
+        failed: attendees.filter(a => a.hasQuiz && !a.isPassed).length,
+        inProgress: attendees.filter(a => !a.hasQuiz && !a.isPassed).length,
+      },
+      attendees,
+      questionStats,
+    });
+  } catch (error) {
+    console.error('Training results error:', error);
+    res.status(500).json({ message: 'Серверийн алдаа' });
+  }
+});
+
 module.exports = router;

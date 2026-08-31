@@ -9,6 +9,13 @@ const enrollmentSchema = new mongoose.Schema({
   isPassed: { type: Boolean, default: false },
   score: { type: Number },
   attempts: { type: Number, default: 0 },
+  // Latest attempt's per-question answers (for teacher analytics)
+  quizResponses: [{
+    question:     { type: mongoose.Schema.Types.ObjectId },
+    questionText: { type: String },
+    selectedText: { type: String },
+    isCorrect:    { type: Boolean, default: false }
+  }],
   completedAt: { type: Date }
 }, { timestamps: true });
 

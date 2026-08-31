@@ -2,9 +2,10 @@ const mongoose = require('mongoose');
 
 const workerSchema = new mongoose.Schema({
   sapId: { type: String, required: true, unique: true },
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
-  company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
+  firstName: { type: String, default: '' },
+  lastName: { type: String, default: '' },
+  company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
+  isSelfRegistered: { type: Boolean, default: false }, // joined via a training link, no company yet
   position: { type: String },
   birthDate: { type: Date },
   employmentDate: { type: Date },

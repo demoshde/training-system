@@ -150,13 +150,19 @@ router.post('/trainings/:id/submit-quiz', workerAuth, async (req, res) => {
     
     // Calculate score
     let correctCount = 0;
+    const quizResponses = [];
     for (const question of training.questions) {
       const userAnswerId = answers[question._id.toString()];
       const correctOption = question.options.find(o => o.isCorrect);
-      
-      if (correctOption && userAnswerId === correctOption._id.toString()) {
-        correctCount++;
-      }
+      const selectedOption = question.options.find(o => o._id.toString() === userAnswerId);
+      const isCorrect = !!(correctOption && userAnswerId === correctOption._id.toString());
+      if (isCorrect) correctCount++;
+      quizResponses.push({
+        question: question._id,
+        questionText: question.questionText,
+        selectedText: selectedOption ? selectedOption.text : '',
+        isCorrect
+      });
     }
 
     const totalQuestions = training.questions.length;
@@ -166,6 +172,7 @@ router.post('/trainings/:id/submit-quiz', workerAuth, async (req, res) => {
     // Update enrollment
     enrollment.attempts += 1;
     enrollment.score = percentage;
+    enrollment.quizResponses = quizResponses;
     
     if (passed) {
       enrollment.isPassed = true;

@@ -49,6 +49,7 @@ app.use('/api/regulations', require('./routes/regulations')); // For workers
 app.use('/api/worker', require('./routes/worker'));
 app.use('/api/supervisor', require('./routes/supervisor'));
 app.use('/api/pvt', require('./routes/pvt'));
+app.use('/api/training-link', require('./routes/trainingLink')); // public self-enrollment
 
 // Error handling
 app.use((err, req, res, next) => {

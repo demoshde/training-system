@@ -55,6 +55,11 @@ export const authApi = axios.create({
   baseURL: '/api/auth'
 });
 
+// Public training self-enrollment API (no auth)
+export const trainingLinkApi = axios.create({
+  baseURL: '/api/training-link'
+});
+
 // Default export for general API calls
 const api = axios.create({
   baseURL: '/api'

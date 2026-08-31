@@ -65,8 +65,15 @@ export const AuthProvider = ({ children }) => {
     setWorker(null);
   };
 
+  // Set an authenticated session directly (used by training-link self-enrollment)
+  const setSession = (token, workerData) => {
+    localStorage.setItem('workerToken', token);
+    localStorage.setItem('worker', JSON.stringify(workerData));
+    setWorker(workerData);
+  };
+
   return (
-    <AuthContext.Provider value={{ worker, loading, login, logout, isAuthenticated: !!worker }}>
+    <AuthContext.Provider value={{ worker, loading, login, logout, setSession, isAuthenticated: !!worker }}>
       {children}
     </AuthContext.Provider>
   );
